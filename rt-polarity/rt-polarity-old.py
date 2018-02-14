@@ -28,17 +28,17 @@ class Model(nn.Module):
         # Make sure you understand why the input dimension is vocab_size
         # and the output is num_labels!
 
-        # linearly maps from index of word to number of labels (2)
+        # linearly maps from vocabulary size (many) to number of labels (2)
         self.linear = nn.Linear(vocab_size, num_labels) # initialize self.linear
         # embedding size, num_labels
 
         # Don't need to define softmax because softmax doesn't take parameters
 
-    def forward(self, word_vec): # how to classify a training example?
+    def forward(self, bow_vec): # how to classify a training example?
         # Pass the input through the linear layer,
         # then pass that through log_softmax (normalize to probabilities)
         # Many non-linearities and other functions are in torch.nn.functional
-        return F.log_softmax(self.linear(word_vec), dim=1)
+        return F.log_softmax(self.linear(bow_vec), dim=1)
 
 def main():
     '''
@@ -89,9 +89,9 @@ def main():
     train(Xpostrain, Xnegtrain, model, word_to_ix)
     
     # To run the model, pass in a BoW vector, but wrapped in an autograd.Variable
-#    bow_vector = make_bow_vector(Xnegtest[0][0], word_to_ix)
-#    log_probs = model(autograd.Variable(bow_vector))
-#    print(log_probs)
+    bow_vector = make_bow_vector(Xnegtest[0][0], word_to_ix)
+    log_probs = model(autograd.Variable(bow_vector))
+    print(log_probs)
 
     correctness = evaluate(model, word_to_ix, Xposdev, Xnegdev)
     print(correctness)
@@ -100,37 +100,17 @@ def evaluate(model, word_to_ix, Xpostest, Xnegtest):
     count = 0
     # count positive classifications in pos
     for words, _ in Xpostest:
-        log_probs_sum = autograd.Variable(torch.zeros(2).view(1,-1))
-        for word in words:
-            model.zero_grad()
-            idx = word_to_ix[word]
-            word_vec = autograd.Variable(torch.zeros(len(word_to_ix)))
-            word_vec[idx] = 1
-            word_vec_a = word_vec.view(1,-1)
-            log_probs = model(word_vec_a)
-            log_probs_sum += log_probs
-        ave_prob = log_probs_sum / len(words) # get average
-        #bow_vector = make_bow_vector(words, word_to_ix)
-        #log_probs = model(autograd.Variable(bow_vector))
-        if (log_probs_sum.data[0][0] < log_probs_sum.data[0][1]): # classify as positive
+        bow_vector = make_bow_vector(words, word_to_ix)
+        log_probs = model(autograd.Variable(bow_vector))
+        if (log_probs.data[0][0] < log_probs.data[0][1]): # classify as positive
             count += 1
     print("correctly positive: " + str(float(count) / float(len(Xpostest))))
     
     # count negative classifications in neg
     negcount = 0
     for words, _ in Xnegtest:
-        log_probs_sum = autograd.Variable(torch.zeros(2).view(1,-1))
-        for word in words:
-            model.zero_grad()
-            idx = word_to_ix[word]
-            word_vec = autograd.Variable(torch.zeros(len(word_to_ix)))
-            word_vec[idx] = 1
-            word_vec_a = word_vec.view(1,-1)
-            log_probs = model(word_vec_a)
-            log_probs_sum += log_probs
-        ave_prob = log_probs_sum / len(words) # get average
-        #bow_vector = make_bow_vector(words, word_to_ix)
-        #log_probs = model(autograd.Variable(bow_vector))
+        bow_vector = make_bow_vector(words, word_to_ix)
+        log_probs = model(autograd.Variable(bow_vector))
         if (log_probs.data[0][0] > log_probs.data[0][1]): # classify as negative
             negcount += 1
     print("correctly negative: " + str(float(negcount) / float(len(Xnegtest))))
@@ -170,25 +150,9 @@ def train(Xpos, Xneg, model, word_to_ix):
     # Usually you want to pass over the training data several times.
     # 100 is much bigger than on a real data set, but real datasets have more than
     # two instances.  Usually, somewhere between 5 and 30 epochs is reasonable.
-    for epoch in range(1):
+    for epoch in range(10):
         print(epoch)
-        i = 0
-        print(len(Xtrain))
         for instance, label in Xtrain:
-            print(label)
-            log_probs_sum = autograd.Variable(torch.zeros(2).view(1,-1))
-            for word in instance:
-                model.zero_grad()
-                idx = word_to_ix[word]
-                word_vec = autograd.Variable(torch.zeros(len(word_to_ix)))
-                word_vec[idx] = 1
-                word_vec_a = word_vec.view(1,-1)
-                log_probs = model(word_vec_a)
-                log_probs_sum += log_probs
-            ave_prob = log_probs_sum / len(instance) # get average
-            #ave_prob_ft = autograd.Variable(torch.FloatTensor([ave_neg_prob, ave_pos_prob])).view(1,-1)
-            label_ft = autograd.Variable(torch.LongTensor([label]))
-            '''
             # Step 1. Remember that Pytorch accumulates gradients.
             # We need to clear them out before each instance
             model.zero_grad()
@@ -200,19 +164,23 @@ def train(Xpos, Xneg, model, word_to_ix):
             # corresponding to NEGATIVE
             bow_vec = autograd.Variable(make_bow_vector(instance, word_to_ix))
             target = autograd.Variable(torch.LongTensor([label]))#make_target(1, label_to_ix))
-            
+
             # Step 3. Run our forward pass.
             log_probs = model(bow_vec) # what our probability distr looks like currently
-            '''
+
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
-            loss = loss_function(ave_prob, label_ft)
+            loss = loss_function(log_probs, target)
             loss.backward()
             optimizer.step()
-            i += 1
-            if (i % 500 == 0):
-                print(i)
-#            evaluate(model, word_to_ix, Xpos, Xneg)
+            evaluate(model, word_to_ix, Xpos, Xneg)
+            
+''' Run over test data
+    for instance, label in test_data:
+        bow_vec = autograd.Variable(make_bow_vector(instance, word_to_ix))
+        log_probs = model(bow_vec)
+        print(log_probs)
+'''
 
 
 # counts frequency of each word in a sentence
