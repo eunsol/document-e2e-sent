@@ -8,6 +8,51 @@ import torch.optim as optim
 import numpy as np
 import random
 from random import shuffle
+import matplotlib.pyplot as plt
+
+#??: for each sentence, we are averaging across the embeddings before
+#   passing through model--is this bad?
+
+epochs = 10
+EMBEDDING_SIZE = 300
+"""
+class Model(nn.Module):
+    def __init__(self, num_labels, vocab_size, embeddings_size):
+        super(Model, self).__init__()
+        
+        self.linear = nn.Linear(embeddings_size * vocab_size, num_labels) # initialize self.linear
+        
+        self.embeds = nn.Embedding(vocab_size, embeddings_size)
+        self.embeds.weight.data.copy_(torch.FloatTensor(embeddings))
+        
+
+    def forward(self, inputs): # how to classify a training example?
+        #embeds = self.embeddings(inputs).view((1, -1)) # get embeddings of inputs
+        #print(str(self.embeddings(inputs)))
+        # Pass the input through the linear layer,
+        # then pass that through log_softmax (normalize to probabilities)
+        # Many non-linearities and other functions are in torch.nn.functional
+        return F.log_softmax(self.linear(self.embeds(inputs).view(1,-1)), dim=1)
+
+def make_embeddings_vector(sentence, word_to_ix, embeds):
+    #vec = torch.zeros(len(embeds[0])) # width of embeds
+    num_words = 0
+    word_vec = []
+    for word in sentence:
+        if word in word_to_ix.keys():
+            #num_words += 1
+            #embeds_w = embeds[word_to_ix[word]]
+            word_vec.append(word_to_ix[word])
+            #vec += torch.FloatTensor(embeds_w)
+    vec = torch.FloatTensor(word_vec)
+    '''
+    if (num_words != 0):
+        vec = vec / num_words
+    '''
+    print(vec)
+    return autograd.Variable(vec) #vec.view(1, -1)
+"""
+
 
 class Model(nn.Module):
     def __init__(self, num_labels, vocab_size, embeddings_size):
@@ -37,16 +82,28 @@ def make_embeddings_vector(sentence, word_to_ix, embeds):
 
 def train(Xpos, Xneg, model, word_to_ix, embeds, Xposdev, Xnegdev, Xpostest, Xnegtest):
     loss_function = nn.NLLLoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.1)
+    optimizer = optim.SGD(model.parameters(), lr=0.01)
     
     Xtrain = [Xs for Xs in Xpos]
     for Xs in Xneg:
         Xtrain.append(Xs)
     Xtrain = random.sample(Xtrain, len(Xtrain))
 
-    evaluations = []
+    trains = []
+    devs = []
     tests = []
-    for epoch in range(10):
+    trainposperf, trainnegperf, trainperf = evaluate(model, word_to_ix, Xpos, Xneg)
+    print("train correctly negative: " + str(trainnegperf))
+    print("train correctly positive: " + str(trainposperf))
+    print("train correctly correct: " + str(trainperf))
+    devposperf, devnegperf, devperf = evaluate(model, word_to_ix, Xposdev, Xnegdev)
+    print("dev correctly negative: " + str(devnegperf))
+    print("dev correctly positive: " + str(devposperf))
+    print("dev correctly correct: " + str(devperf))
+    trains.append(trainperf)
+    devs.append(devperf)
+    tests.append(evaluate(model, word_to_ix, Xpostest, Xnegtest)[2])
+    for epoch in range(0,epochs):
         print(epoch)
         for instance, label in Xtrain:
             # Step 1. Remember that Pytorch accumulates gradients.
@@ -81,9 +138,10 @@ def train(Xpos, Xneg, model, word_to_ix, embeds, Xposdev, Xnegdev, Xpostest, Xne
         print("dev correctly negative: " + str(devnegperf))
         print("dev correctly positive: " + str(devposperf))
         print("dev correctly correct: " + str(devperf))
-        evaluations.append(devperf)
+        trains.append(trainperf)
+        devs.append(devperf)
         tests.append(evaluate(model, word_to_ix, Xpostest, Xnegtest)[2])
-    return tests, evaluations
+    return tests, devs, trains
 
 def parse_embeddings(filename):
     word_to_ix = {} # index of word in embeddings
@@ -152,32 +210,37 @@ def evaluate(model, word_to_ix, Xpostest, Xnegtest):
     total = float(count + negcount) / float(len(Xpostest) + len(Xnegtest))
     return pos, neg, total
 
+# plot across each epoch
+def plot(dev_accs, train_accs):
+    plt.plot(range(0,epochs+1), dev_accs, c = 'red', label = 'Dev Set Accuracy')
+    plt.plot(range(0,epochs+1), train_accs, c = 'blue', label = 'Train Set Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.title('Accuracy vs. # of Epochs')
+    plt.legend()
+    plt.show()
+
 Xneg = parse_input_files("rt-polaritydata/rt-polarity.neg", 0)
 Xpos = parse_input_files("rt-polaritydata/rt-polarity.pos", 1)
 
 Xnegtrain, Xnegdev, Xnegtest = splitdata(Xneg)
 Xpostrain, Xposdev, Xpostest = splitdata(Xpos)
 
-word_to_ix, embeds = parse_embeddings("glove.6B.50d.txt")
+word_to_ix, embeds = parse_embeddings("glove.6B." + str(EMBEDDING_SIZE) + "d.txt")
 embeddings = nn.Embedding(len(word_to_ix), len(embeds[0])) # 50 features per word
 embeddings.weight.data.copy_(torch.FloatTensor(embeds)) # set the weights
                                                # to the pre-trained vector
-'''
-word_to_ix = {}
-for sent, _ in Xnegtrain + Xnegdev + Xnegtest + Xpostrain + Xposdev + Xpostest:
-    for word in sent:
-        if word not in word_to_ix:
-            word_to_ix[word] = len(word_to_ix)
-'''
 
 NUM_LABELS = 2
 VOCAB_SIZE = len(word_to_ix)
-EMBEDDING_SIZE = 50
 
 model = Model(NUM_LABELS, VOCAB_SIZE, EMBEDDING_SIZE)
 pos,neg,total = evaluate(model, word_to_ix, Xpostrain, Xnegtrain)
-print("dev correct: " + str(total))
-test_c, dev_c = train(Xpostrain, Xnegtrain, model, word_to_ix, embeds, Xposdev, Xnegdev, Xpostest, Xnegtest)
+print("train correct: " + str(neg) + ", " + str(pos) + ", " + str(total))
+test_c, dev_c, train_c = train(Xpostrain, Xnegtrain, model, word_to_ix, embeds, Xposdev, Xnegdev, Xpostest, Xnegtest)
+
+plot(dev_c, train_c)
+
 print(str(dev_c))
 best_epochs = np.argmax(np.array(dev_c))
 dev_results = dev_c[best_epochs]
