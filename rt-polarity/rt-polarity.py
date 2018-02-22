@@ -176,6 +176,10 @@ def train(Xpos, Xneg, model, word_to_ix):
         print(len(Xtrain))
         for instance, label in Xtrain:
             print(label)
+            model.zero_grad()
+
+            model.
+            '''
             log_probs_sum = autograd.Variable(torch.zeros(2).view(1,-1))
             for word in instance:
                 model.zero_grad()
@@ -186,7 +190,7 @@ def train(Xpos, Xneg, model, word_to_ix):
                 log_probs = model(word_vec_a)
                 log_probs_sum += log_probs
             ave_prob = log_probs_sum / len(instance) # get average
-            #ave_prob_ft = autograd.Variable(torch.FloatTensor([ave_neg_prob, ave_pos_prob])).view(1,-1)
+            '''
             label_ft = autograd.Variable(torch.LongTensor([label]))
             '''
             # Step 1. Remember that Pytorch accumulates gradients.
