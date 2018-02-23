@@ -41,13 +41,19 @@ class Model(nn.Module):
                 autograd.Variable(torch.zeros(1, 1, self.hidden_dim)))
 
     def forward(self, word_vec): # how to classify a training example?
-        #embeds = self.embeddings(inputs).view((1, -1)) # get embeddings of inputs
-        #print(str(self.embeddings(inputs)))
-        # Pass the input through the linear layer,
-        # then pass that through log_softmax (normalize to probabilities)
-        # Many non-linearities and other functions are in torch.nn.functional
-        #print("1 = " + str(self.linear(embeds)))
-        #print("2 = " + str(F.log_softmax(self.linear(embeds))))
+        # attention: learn weight matrix (parameter) mapping hidden layers to weights
+        #       alpha_i = weight * hidden layer+i
+        #       normalize alphas (through softmax)
+        #       x_i = sum(a_{i,t} * x_t) (weighted sum)
+        # sum of each hidden layer
+        # attention: don't have to propogate information onto end
+
+        # Features: word -> features (Tff file)
+        # number from 0 - 5 (strong positive is 5, weak positive is 4, etc.)
+        # learning embeddings for each of 0-5 (dimension: 50x5)
+        # use to nn.Embeddings(5, embeddings_size)
+        # lstm input is [word embeddings, feature embeddings]
+        
         #lin = self.linear(embeds)
         #mean = torch.mean(lin, dim=0).view(1, -1)
         #print(self.embeds(word_vec))
@@ -63,14 +69,10 @@ class Model(nn.Module):
         return log_probs
 
 def make_embeddings_vector(sentence, word_to_ix):
-    #vec = torch.zeros(len(embeds[0])) # width of embeds
     word_vec = []
     for word in sentence:
-        if word in word_to_ix.keys():
-            #embeds_w = embeds[word_to_ix[word]]
+        if word in word_to_ix:
             word_vec.append(word_to_ix[word])
-            #vec += torch.FloatTensor(embeds_w)
-    #return vec.view(num_words, -1)
     return autograd.Variable(torch.LongTensor(word_vec))
 
 def train(Xpos, Xneg, model, word_to_ix, Xposdev, Xnegdev, Xpostest, Xnegtest):
@@ -230,11 +232,6 @@ def main():
     Xpostrain, Xposdev, Xpostest = splitdata(Xpos)
 
     word_to_ix, embeds = parse_embeddings("glove.6B." + str(EMBEDDING_DIM) + "d.txt")
-    """
-    embeddings = nn.Embedding(len(word_to_ix), len(embeds[0])) # 50 features per word
-    embeddings.weight.data.copy_(torch.FloatTensor(embeds)) # set the weights
-                                                   # to the pre-trained vector
-    """
 
     NUM_LABELS = 2
     VOCAB_SIZE = len(word_to_ix)
