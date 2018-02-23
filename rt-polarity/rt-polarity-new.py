@@ -14,7 +14,8 @@ import matplotlib.pyplot as plt
 #   passing through model--is this bad?
 
 epochs = 10
-EMBEDDING_SIZE = 50
+EMBEDDING_DIM = 50
+HIDDEN_DIM = 50
 """
 class Model(nn.Module):
     def __init__(self, num_labels, vocab_size, embeddings_size):
@@ -55,18 +56,19 @@ def make_embeddings_vector(sentence, word_to_ix, embeds):
 
 
 class Model(nn.Module):
-    def __init__(self, num_labels, vocab_size, embeddings_size):
+    def __init__(self, num_labels, vocab_size, embeddings_size, hidden_dim):
         super(Model, self).__init__()
         
         self.linear = nn.Linear(embeddings_size, num_labels) # initialize self.linear
 
-    '''
+        self.hidden_dim = hidden_dim
+
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim)
+        self.lstm = nn.LSTM(embeddings_size, hidden_dim)
 
-        # The linear layer that maps from hidden state space to tag space
-        self.hidden2tag = nn.Linear(hidden_dim, tagset_size)
+        # The linear layer that maps from hidden state space to target space
+        self.hidden2tag = nn.Linear(hidden_dim, num_labels)
         self.hidden = self.init_hidden()
 
     def init_hidden(self):
@@ -76,7 +78,6 @@ class Model(nn.Module):
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
         return (autograd.Variable(torch.zeros(1, 1, self.hidden_dim)),
                 autograd.Variable(torch.zeros(1, 1, self.hidden_dim)))
-    '''
 
     def forward(self, embeds): # how to classify a training example?
         #embeds = self.embeddings(inputs).view((1, -1)) # get embeddings of inputs
@@ -86,9 +87,16 @@ class Model(nn.Module):
         # Many non-linearities and other functions are in torch.nn.functional
         #print("1 = " + str(self.linear(embeds)))
         #print("2 = " + str(F.log_softmax(self.linear(embeds))))
-        lin = self.linear(embeds)
-        mean = torch.mean(lin, dim=0).view(1, -1)
-        return F.log_softmax(mean, dim=1)
+        #lin = self.linear(embeds)
+        #mean = torch.mean(lin, dim=0).view(1, -1)
+        lstm_out, self.hidden = self.lstm(embeds, self.hidden)
+        #print(str(lstm_out) + " " + str(lstm_out[-1]))
+        # index "-1" equivalent to "len(lstm_out) -1", essentially getting the
+        # result of the final time-step (after all words have been considered)
+        tag_space = self.hidden2tag(lstm_out[-1])
+        #print("tags = " + str(tag_space))
+        tag_scores = F.log_softmax(tag_space, dim=1)
+        return tag_scores
 
 def make_embeddings_vector(sentence, word_to_ix, embeds):
     #vec = torch.zeros(len(embeds[0])) # width of embeds
@@ -137,6 +145,8 @@ def train(Xpos, Xneg, model, word_to_ix, embeds, Xposdev, Xnegdev, Xpostest, Xne
             # We need to clear them out before each instance
             model.zero_grad()
 
+            model.hidden = model.init_hidden()
+
             # Step 2. Make our BOW vector and also we must wrap the target in a
             # Variable as an integer. For example, if the target is NEGATIVE, then
             # we wrap the integer 0. The loss function then knows that the 0th
@@ -157,11 +167,11 @@ def train(Xpos, Xneg, model, word_to_ix, embeds, Xposdev, Xnegdev, Xpostest, Xne
             loss.backward()
             optimizer.step()
             #print("loss = " + str(loss))
-        trainposperf, trainnegperf, trainperf = evaluate(model, word_to_ix, Xpos, Xneg)
+        trainposperf, trainnegperf, trainperf = evaluate(model, word_to_ix, Xpos, Xneg, embeds)
         print("train correctly negative: " + str(trainnegperf))
         print("train correctly positive: " + str(trainposperf))
         print("train correctly correct: " + str(trainperf))
-        devposperf, devnegperf, devperf = evaluate(model, word_to_ix, Xposdev, Xnegdev)
+        devposperf, devnegperf, devperf = evaluate(model, word_to_ix, Xposdev, Xnegdev, embeds)
         print("dev correctly negative: " + str(devnegperf))
         print("dev correctly positive: " + str(devposperf))
         print("dev correctly correct: " + str(devperf))
@@ -256,7 +266,7 @@ def main():
     Xnegtrain, Xnegdev, Xnegtest = splitdata(Xneg)
     Xpostrain, Xposdev, Xpostest = splitdata(Xpos)
 
-    word_to_ix, embeds = parse_embeddings("glove.6B." + str(EMBEDDING_SIZE) + "d.txt")
+    word_to_ix, embeds = parse_embeddings("glove.6B." + str(EMBEDDING_DIM) + "d.txt")
     embeddings = nn.Embedding(len(word_to_ix), len(embeds[0])) # 50 features per word
     embeddings.weight.data.copy_(torch.FloatTensor(embeds)) # set the weights
                                                    # to the pre-trained vector
@@ -264,7 +274,7 @@ def main():
     NUM_LABELS = 2
     VOCAB_SIZE = len(word_to_ix)
 
-    model = Model(NUM_LABELS, VOCAB_SIZE, EMBEDDING_SIZE)
+    model = Model(NUM_LABELS, VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM)
     
     test_c, dev_c, train_c = train(Xpostrain, Xnegtrain, model, word_to_ix, embeddings, Xposdev, Xnegdev, Xpostest, Xnegtest)
 
