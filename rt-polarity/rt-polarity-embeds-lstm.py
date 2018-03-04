@@ -9,27 +9,32 @@ import numpy as np
 import random
 from random import shuffle
 import matplotlib.pyplot as plt
+import parser
 
 epochs = 10
 EMBEDDING_DIM = 50
 HIDDEN_DIM = 50
+NUM_FEATURES = 6
 
 class Model(nn.Module):
-    def __init__(self, num_labels, vocab_size, embeddings_size, hidden_dim, embeddings):
+    def __init__(self, num_labels, vocab_size, embeddings_size,
+                 hidden_dim, word_embeddings, num_features):
         super(Model, self).__init__()
         
         self.hidden_dim = hidden_dim
 
-        self.embeds = nn.Embedding(vocab_size, embeddings_size)
-        self.embeds.weight.data.copy_(torch.FloatTensor(embeddings))
-        self.embeds.weight.requires_grad = False # don't update the embeddings
+        self.word_embeds = nn.Embedding(vocab_size, embeddings_size)
+        self.word_embeds.weight.data.copy_(torch.FloatTensor(word_embeddings))
+        self.word_embeds.weight.requires_grad = False # don't update the embeddings
 
-        # The LSTM takes word embeddings as inputs, and outputs hidden states
-        # with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(embeddings_size, hidden_dim)
+        self.feature_embeds = nn.Embedding(num_features, embeddings_size)
+        
+        # The LSTM takes [word embeddings, feature embeddings] as inputs, and
+        # outputs hidden states with dimensionality hidden_dim.
+        self.lstm = nn.LSTM(2 * embeddings_size, hidden_dim)
 
         # The linear layer that maps from hidden state space to target space
-        self.hidden2tag = nn.Linear(hidden_dim, num_labels)
+        self.hidden2label = nn.Linear(hidden_dim, num_labels)
         self.hidden = self.init_hidden()
 
     def init_hidden(self):
@@ -40,7 +45,7 @@ class Model(nn.Module):
         return (autograd.Variable(torch.zeros(1, 1, self.hidden_dim)),
                 autograd.Variable(torch.zeros(1, 1, self.hidden_dim)))
 
-    def forward(self, word_vec): # how to classify a training example?
+    def forward(self, word_vec, feature_vec): # how to classify a training example?
         # attention: learn weight matrix (parameter) mapping hidden layers to weights
         #       alpha_i = weight * hidden layer+i
         #       normalize alphas (through softmax)
@@ -57,49 +62,63 @@ class Model(nn.Module):
         #lin = self.linear(embeds)
         #mean = torch.mean(lin, dim=0).view(1, -1)
         #print(self.embeds(word_vec))
-        embeds_vec = self.embeds(word_vec).view(len(word_vec), -1)
+        word_embeds_vec = self.word_embeds(word_vec).view(len(word_vec), 1, -1)
         #print(embeds_vec)
-        lstm_out, self.hidden = self.lstm(embeds_vec, self.hidden)
+        if feature_vec.data.dim() != 0: # do this for word embeddings too
+            feature_embeds_vec = self.feature_embeds(feature_vec).view(len(feature_vec), 1, -1)
+        # [word embeddings, feature embeddings]
+        lstm_input = torch.cat((word_embeds_vec, feature_embeds_vec),
+                               1).view(len(word_vec), 1, -1)
+        
+        lstm_out, self.hidden = self.lstm(lstm_input, self.hidden)
         #print(str(lstm_out) + " " + str(lstm_out[-1]))
         # index "-1" equivalent to "len(lstm_out) -1", essentially getting the
         # result of the final time-step (after all words have been considered)
-        tag_space = self.hidden2tag(lstm_out[-1])
+        tag_space = self.hidden2label(lstm_out[-1])
         #print("tags = " + str(tag_space))
         log_probs = F.log_softmax(tag_space, dim=1)
         return log_probs
 
-def make_embeddings_vector(sentence, word_to_ix):
+# includes word and polarity ("feature") embeddings
+def make_embeddings_vector(sentence, word_to_ix, word_to_polarity):
     word_vec = []
+    feature_vec = []
     for word in sentence:
+        # domains of word_to_ix and word_to_polarity are equal,
+        # so just need to check word_to_ix
         if word in word_to_ix:
             word_vec.append(word_to_ix[word])
-    return autograd.Variable(torch.LongTensor(word_vec))
+            feature_vec.append(word_to_polarity[word])
+            #print(word + " " + str(word_to_polarity[word]))
+    return autograd.Variable(torch.LongTensor(word_vec)), autograd.Variable(
+        torch.LongTensor(feature_vec))
 
-def train(Xpos, Xneg, model, word_to_ix, Xposdev, Xnegdev, Xpostest, Xnegtest):
-    loss_function = nn.NLLLoss()
-
-    # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01)
-    
-    Xtrain = [Xs for Xs in Xpos]
+def train(Xpos, Xneg, model, word_to_ix, word_to_polarity, Xposdev, Xnegdev, Xpostest, Xnegtest):    Xtrain = [Xs for Xs in Xpos]
     for Xs in Xneg:
         Xtrain.append(Xs)
     Xtrain = random.sample(Xtrain, len(Xtrain))
 
+    print("Evaluating before training...")
     trains = []
     devs = []
     tests = []
-    trainposperf, trainnegperf, trainperf = evaluate(model, word_to_ix, Xpos, Xneg)
+    trainposperf, trainnegperf, trainperf = evaluate(model, word_to_ix, word_to_polarity, Xpos, Xneg)
     print("train correctly negative: " + str(trainnegperf))
     print("train correctly positive: " + str(trainposperf))
     print("train correctly correct: " + str(trainperf))
-    devposperf, devnegperf, devperf = evaluate(model, word_to_ix, Xposdev, Xnegdev)
+    devposperf, devnegperf, devperf = evaluate(model, word_to_ix, word_to_polarity, Xposdev, Xnegdev)
     print("dev correctly negative: " + str(devnegperf))
     print("dev correctly positive: " + str(devposperf))
     print("dev correctly correct: " + str(devperf))
     trains.append(trainperf)
     devs.append(devperf)
-    tests.append(evaluate(model, word_to_ix, Xpostest, Xnegtest)[2])
+    tests.append(evaluate(model, word_to_ix, word_to_polarity, Xpostest, Xnegtest)[2])
+
+    loss_function = nn.NLLLoss()
+
+    # skip updating the non-requires-grad params (i.e. the embeddings)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01)
+    
     for epoch in range(0,epochs):
         print("Epoch " + str(epoch))
         i = 0
@@ -115,11 +134,11 @@ def train(Xpos, Xneg, model, word_to_ix, Xposdev, Xnegdev, Xpostest, Xnegtest):
             # we wrap the integer 0. The loss function then knows that the 0th
             # element of the log probabilities is the log probability
             # corresponding to NEGATIVE
-            words_vec = make_embeddings_vector(instance, word_to_ix) # average embeddings
+            words_vec, features_vec = make_embeddings_vector(instance, word_to_ix, word_to_polarity)
             target = autograd.Variable(torch.LongTensor([label])) #make_target(1, label_to_ix))
 
             # Step 3. Run our forward pass.
-            log_probs = model(words_vec)
+            log_probs = model(words_vec, features_vec)
             
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
@@ -130,74 +149,25 @@ def train(Xpos, Xneg, model, word_to_ix, Xposdev, Xnegdev, Xpostest, Xnegtest):
             if (i % 100 == 0):
                 print("    " + str(i))
             i += 1
-        trainposperf, trainnegperf, trainperf = evaluate(model, word_to_ix, Xpos, Xneg)
+        trainposperf, trainnegperf, trainperf = evaluate(model, word_to_ix, word_to_polarity, Xpos, Xneg)
         print("train correctly negative: " + str(trainnegperf))
         print("train correctly positive: " + str(trainposperf))
         print("train correctly correct: " + str(trainperf))
-        devposperf, devnegperf, devperf = evaluate(model, word_to_ix, Xposdev, Xnegdev)
+        devposperf, devnegperf, devperf = evaluate(model, word_to_ix, word_to_polarity, Xposdev, Xnegdev)
         print("dev correctly negative: " + str(devnegperf))
         print("dev correctly positive: " + str(devposperf))
         print("dev correctly correct: " + str(devperf))
         trains.append(trainperf)
         devs.append(devperf)
-        tests.append(evaluate(model, word_to_ix, Xpostest, Xnegtest)[2])
+        tests.append(evaluate(model, word_to_ix, word_to_polarity, Xpostest, Xnegtest)[2])
     return tests, devs, trains
 
-def parse_embeddings(filename):
-    word_to_ix = {} # index of word in embeddings
-    embeds = []
-    print("opening " + filename + "...")
-    with open("glove.6B/" + filename, 'rt') as f:
-        i = 0
-        for line in f:
-            word_and_embed = line.split()
-            word = word_and_embed.pop(0)
-            word_to_ix[word] = i
-            embeds.append([float(val) for val in word_and_embed])
-            if (i % 50000 == 49999): # 400,000 lines total
-                print("parsed line " + str(i))
-            i += 1
-            """
-            if (i > 100000):
-                break
-            """
-    return word_to_ix, embeds
-
-def splitdata(X):
-    trainlen = int(0.8 * len(X))
-    devlen = int(0.1 * len(X))
-    Xtrain = []
-    Xdev = []
-    Xtest = []
-    for i in range(0,len(X)):
-        if (i < trainlen):
-            Xtrain.append(X[i])
-        elif (i < trainlen + devlen):
-            Xdev.append(X[i])
-        else:
-            Xtest.append(X[i])
-    print(len(Xtrain))
-    print(len(Xdev))
-    print(len(Xtest))
-
-    return Xtrain, Xdev, Xtest
-
-def parse_input_files(filename, label):
-    """
-    Reads the file with name filename
-    """
-    xs = []
-    with open(filename, 'rt', encoding='latin1') as f:
-        for line in f:
-            xs.append((line.split(), label))
-    return xs
-
-def evaluate(model, word_to_ix, Xpostest, Xnegtest):
+def evaluate(model, word_to_ix, word_to_polarity, Xpostest, Xnegtest):
     count = 0
     # count positive classifications in pos
     for words, _ in Xpostest:
-        w_vector = make_embeddings_vector(words, word_to_ix)
-        log_probs = model(w_vector)
+        w_vector, f_vector = make_embeddings_vector(words, word_to_ix, word_to_polarity)
+        log_probs = model(w_vector, f_vector)
         if (log_probs.data[0][0] < log_probs.data[0][1]): # classify as positive
             count += 1
     pos = float(count) / float(len(Xpostest))
@@ -205,8 +175,8 @@ def evaluate(model, word_to_ix, Xpostest, Xnegtest):
     # count negative classifications in neg
     negcount = 0
     for words, _ in Xnegtest:
-        w_vector = make_embeddings_vector(words, word_to_ix)
-        log_probs = model(w_vector)
+        w_vector, f_vector = make_embeddings_vector(words, word_to_ix, word_to_polarity)
+        log_probs = model(w_vector, f_vector)
         if (log_probs.data[0][0] > log_probs.data[0][1]): # classify as negative
             negcount += 1
     neg = float(negcount) / float(len(Xnegtest))
@@ -225,20 +195,24 @@ def plot(dev_accs, train_accs):
     plt.show()
 
 def main():
-    Xneg = parse_input_files("rt-polaritydata/rt-polarity.neg", 0)
-    Xpos = parse_input_files("rt-polaritydata/rt-polarity.pos", 1)
+    Xneg = parser.parse_input_files("rt-polaritydata/rt-polarity.neg", 0)
+    Xpos = parser.parse_input_files("rt-polaritydata/rt-polarity.pos", 1)
 
-    Xnegtrain, Xnegdev, Xnegtest = splitdata(Xneg)
-    Xpostrain, Xposdev, Xpostest = splitdata(Xpos)
+    Xnegtrain, Xnegdev, Xnegtest = parser.splitdata(Xneg)
+    Xpostrain, Xposdev, Xpostest = parser.splitdata(Xpos)
 
-    word_to_ix, embeds = parse_embeddings("glove.6B." + str(EMBEDDING_DIM) + "d.txt")
+    word_to_ix, embeds = parser.parse_embeddings("glove.6B." + str(EMBEDDING_DIM) + "d.txt")
+    # returns mapping word->polarity for shared words in word->ix
+    word_to_polarity = parser.parse_tff("subjclueslen1-HLTEMNLP05.tff", word_to_ix)
 
     NUM_LABELS = 2
     VOCAB_SIZE = len(word_to_ix)
 
-    model = Model(NUM_LABELS, VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM, embeds)
+    model = Model(NUM_LABELS, VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM, embeds, NUM_FEATURES)
     
-    test_c, dev_c, train_c = train(Xpostrain, Xnegtrain, model, word_to_ix, Xposdev, Xnegdev, Xpostest, Xnegtest)
+    test_c, dev_c, train_c = train(Xpostrain, Xnegtrain, model,
+                                   word_to_ix, word_to_polarity,
+                                   Xposdev, Xnegdev, Xpostest, Xnegtest)
 
     plot(dev_c, train_c)
 
