@@ -72,11 +72,14 @@ class Model(nn.Module):
 
         # Pass through lstm
         lstm_out, self.hidden = self.lstm(lstm_input, self.hidden)
+
+        # Compute and apply weights (attention) to each layer
+        alphas = self.attention(lstm_out)
+        alphas = F.softmax(alphas, dim=0)
+        weighted_lstm_out = torch.sum(torch.mul(alphas, lstm_out), dim=0)
         
-        # Get final results:
-        # index "-1" equivalent to "len(lstm_out) -1", essentially getting the
-        # result of the final time-step (after all words have been considered)
-        tag_space = self.hidden2label(lstm_out[-1])
+        # Get final results, passing in weighted lstm output:
+        tag_space = self.hidden2label(weighted_lstm_out)
         #print("tags = " + str(tag_space))
         log_probs = F.log_softmax(tag_space, dim=1)
         return log_probs
