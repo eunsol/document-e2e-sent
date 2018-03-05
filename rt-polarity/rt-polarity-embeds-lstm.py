@@ -13,7 +13,7 @@ import parser
 
 epochs = 10
 EMBEDDING_DIM = 50
-HIDDEN_DIM = 50
+HIDDEN_DIM = 2 * EMBEDDING_DIM
 NUM_FEATURES = 6
 
 class Model(nn.Module):
@@ -37,11 +37,14 @@ class Model(nn.Module):
         self.hidden2label = nn.Linear(hidden_dim, num_labels)
         self.hidden = self.init_hidden()
 
+        # Matrix of weights for each layer
+        # Linear map from hidden layers to alpha for that layer
+        self.attention = nn.Linear(hidden_dim, 1)
+
     def init_hidden(self):
-        # Before we've done anything, we dont have any hidden state.
-        # Refer to the Pytorch documentation to see exactly
-        # why they have this dimensionality.
         # The axes semantics are (num_layers, minibatch_size, hidden_dim)
+        # Initialize to 0's
+        # Returns (hidden state, cell state)
         return (autograd.Variable(torch.zeros(1, 1, self.hidden_dim)),
                 autograd.Variable(torch.zeros(1, 1, self.hidden_dim)))
 
@@ -58,23 +61,27 @@ class Model(nn.Module):
         # learning embeddings for each of 0-5 (dimension: 50x5)
         # use to nn.Embeddings(5, embeddings_size)
         # lstm input is [word embeddings, feature embeddings]
-        
-        #lin = self.linear(embeds)
-        #mean = torch.mean(lin, dim=0).view(1, -1)
-        #print(self.embeds(word_vec))
+
+        # Apply embeddings & prepare input
+        # TODO: will ever need to deal with empty embeddings?
         word_embeds_vec = self.word_embeds(word_vec).view(len(word_vec), 1, -1)
-        #print(embeds_vec)
-        if feature_vec.data.dim() != 0: # do this for word embeddings too
-            feature_embeds_vec = self.feature_embeds(feature_vec).view(len(feature_vec), 1, -1)
+        feature_embeds_vec = self.feature_embeds(feature_vec).view(len(feature_vec), 1, -1)
         # [word embeddings, feature embeddings]
         lstm_input = torch.cat((word_embeds_vec, feature_embeds_vec),
                                1).view(len(word_vec), 1, -1)
-        
+
+        # Pass through lstm
         lstm_out, self.hidden = self.lstm(lstm_input, self.hidden)
-        #print(str(lstm_out) + " " + str(lstm_out[-1]))
+
+        # Compute and apply weights (attention) to each layer
+        alphas = self.attention(lstm_out)
+        alphas = F.softmax(alphas, dim=0)
+        weighted_lstm_out = torch.sum(torch.mul(alphas, lstm_out), dim=0)
+        
+        # Get final results:
         # index "-1" equivalent to "len(lstm_out) -1", essentially getting the
         # result of the final time-step (after all words have been considered)
-        tag_space = self.hidden2label(lstm_out[-1])
+        tag_space = self.hidden2label(weighted_lstm_out)
         #print("tags = " + str(tag_space))
         log_probs = F.log_softmax(tag_space, dim=1)
         return log_probs
@@ -93,7 +100,8 @@ def make_embeddings_vector(sentence, word_to_ix, word_to_polarity):
     return autograd.Variable(torch.LongTensor(word_vec)), autograd.Variable(
         torch.LongTensor(feature_vec))
 
-def train(Xpos, Xneg, model, word_to_ix, word_to_polarity, Xposdev, Xnegdev, Xpostest, Xnegtest):    Xtrain = [Xs for Xs in Xpos]
+def train(Xpos, Xneg, model, word_to_ix, word_to_polarity, Xposdev, Xnegdev, Xpostest, Xnegtest):
+    Xtrain = [Xs for Xs in Xpos]
     for Xs in Xneg:
         Xtrain.append(Xs)
     Xtrain = random.sample(Xtrain, len(Xtrain))
