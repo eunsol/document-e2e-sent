@@ -20,6 +20,7 @@ BATCH_SIZE = 5
 class Model(nn.Module):
     def __init__(self, num_labels, vocab_size, embeddings_size,
                  hidden_dim, word_embeddings, num_features, batch_size):
+        ''' batch_first = true for all vectors '''
         super(Model, self).__init__()
         
         self.hidden_dim = hidden_dim
@@ -56,23 +57,22 @@ class Model(nn.Module):
         feature_embeds_vec = self.feature_embeds(feature_vec).view(len(feature_vec), self.batch_size, -1)
         # [word embeddings, feature embeddings]
         lstm_input = torch.cat((word_embeds_vec, feature_embeds_vec),
-                               1).view(len(word_vec), self.batch_size, -1)
-
+                               2).view(len(word_vec), self.batch_size, -1)
+        #print(lstm_input.dim)
         # Pass through lstm
         lstm_out, self.hidden = self.lstm(lstm_input, self.hidden)
-
-        '''
+        
         # Compute and apply weights (attention) to each layer
         alphas = self.attention(lstm_out)
         alphas = F.softmax(alphas, dim=0)
-        print(alphas)
+        #print(alphas)
         weighted_lstm_out = torch.sum(torch.mul(alphas, lstm_out), dim=0)
-        print(lstm_out)
-        print(weighted_lstm_out)
-        print
+        #print(lstm_out)
+        #print(weighted_lstm_out)
+        #print
         '''
         weighted_lstm_out = lstm_out[-1]
-        
+        '''
         # Get final results, passing in weighted lstm output:
         tag_space = self.hidden2label(weighted_lstm_out)
         #print("tags = " + str(tag_space))
