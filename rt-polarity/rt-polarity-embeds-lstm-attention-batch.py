@@ -9,7 +9,7 @@ import numpy as np
 import random
 from random import shuffle
 import matplotlib.pyplot as plt
-import parser
+import parser_batch as parser
 
 epochs = 10
 EMBEDDING_DIM = 50
@@ -123,7 +123,7 @@ def train(Xtrain, model, word_to_ix,# ix_to_polarity,
     loss_function = nn.NLLLoss()
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01)
     
     for epoch in range(0,epochs):
         print("Epoch " + str(epoch))
@@ -144,14 +144,16 @@ def train(Xtrain, model, word_to_ix,# ix_to_polarity,
             # element of the log probabilities is the log probability
             # corresponding to NEGATIVE
             words_vec, features_vec = make_embeddings_vector(instance, word_to_ix, word_to_polarity)
-            target = autograd.Variable(torch.LongTensor([label])) #make_target(1, label_to_ix))
             '''
+            #target = autograd.Variable(label) #make_target(1, label_to_ix))
+            
             # Step 3. Run our forward pass.
             log_probs = model(words, polarity)
             
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
             loss = loss_function(log_probs, label) # log_probs = actual distr, target = computed distr
+            #print("loss = " + str(loss.data))
             loss.backward()
             optimizer.step()
             #print("loss = " + str(loss))
@@ -178,6 +180,8 @@ def evaluate(model, word_to_ix,# ix_to_polarity,
     negcount = 0
     totalpos = 0
     totalneg = 0
+    pred = torch.LongTensor([])
+    actual = torch.LongTensor([])
     # count positive classifications in pos
     for batch in Xs:
         #print(word_to_ix)
@@ -188,17 +192,30 @@ def evaluate(model, word_to_ix,# ix_to_polarity,
         model.hidden = model.init_hidden()  # detaching it from its history on the last instance.
         #f_vector = make_polarity_vector(words, ix_to_polarity)
         log_probs = model(words, polarity)
-        #print(str(label.data) + " " + str(log_probs))
-        for instance_label in label.data:
-            if instance_label == 1: # real label is positive
+        '''
+        if len(label.data) > 5:
+            print(str(label.data) + " " + str(log_probs))
+        '''
+        pred_batch = log_probs.data.max(1)[1]
+        '''
+        print(pred_batch)
+        print(pred)
+        pred.concatenate(pred_batch)
+        actual.concatenate(label)
+        '''
+        for i in range(0, len(label.data)):
+            if label.data[i] == 1: # real label is positive
                 totalpos += 1
-                if (log_probs.data[instance_label][0] < log_probs.data[instance_label][1]): # classify (correctly) as positive
+                if (pred_batch[i] == 1): # classify (correctly) as positive
                     poscount += 1
             else: # real label is negative
                 totalneg += 1
-                if (log_probs.data[instance_label][0] > log_probs.data[instance_label][1]): # classify (correctly) as negative
+                if (pred_batch[i] == 0): # classify (correctly) as negative
                     negcount += 1
-        #print(str(totalpos) + " " + str(poscount) + " " + str(totalneg) + " " + str(negcount))
+        '''
+        if len(label.data) > 5:
+            print(str(totalpos) + " " + str(poscount) + " " + str(totalneg) + " " + str(negcount))
+        '''
     print("neg " + str(totalneg))
     print("pos " + str(totalpos))
     pos = float(poscount) / float(totalpos)
