@@ -45,14 +45,14 @@ class Model(nn.Module):
 
         # The LSTM takes [word embeddings, feature embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(3 * embeddings_size, hidden_dim, dropout=dropout_rate, batch_first=True)
+        self.lstm = nn.LSTM(3 * embeddings_size, hidden_dim, dropout=dropout_rate, batch_first=True, bidirectional=True)
 
         # The linear layer that maps from hidden state space to target space
-        self.hidden2label = nn.Linear(hidden_dim, num_labels)
+        self.hidden2label = nn.Linear(2 * hidden_dim, num_labels)
 
         # Matrix of weights for each layer
         # Linear map from hidden layers to alpha for that layer
-        self.attention = nn.Linear(hidden_dim, 1)
+        self.attention = nn.Linear(2 * hidden_dim, 1)
 
     def forward(self, word_vec, feature_vec, holder_target_vec, lengths=None):
         # Apply embeddings & prepare input
@@ -182,7 +182,7 @@ def train(Xtrain, Xdev, Xtest,
         print("dev f1 scores = " + str(dev_score))
         train_res.append(train_score)
         dev_res.append(dev_score)
-        test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xtest,b using_GPU)
+        test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
     return train_res, dev_res, test_res
 
