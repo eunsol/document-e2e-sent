@@ -137,8 +137,8 @@ def train(Xtrain, Xdev, Xtest,
     print("dev f1 scores = " + str(dev_score))
     train_res.append(train_score)
     dev_res.append(dev_score)
-    test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
-    test_res.append(test_score)
+#    test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
+#    test_res.append(test_score)
 
     loss_function = nn.NLLLoss()
 
@@ -184,8 +184,8 @@ def train(Xtrain, Xdev, Xtest,
         print("dev f1 scores = " + str(dev_score))
         train_res.append(train_score)
         dev_res.append(dev_score)
-        test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
-        test_res.append(test_score)
+#        test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
+#        test_res.append(test_score)
     return train_res, dev_res, test_res
 
 
@@ -221,9 +221,9 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
     # Set model to eval mode to turn off dropout.
     model.eval()
 
-    total_true = torch.LongTensor([0, 0, 0])
-    total_pred = torch.LongTensor([0, 0, 0])
-    total_correct = torch.LongTensor([0, 0, 0])
+    total_true = [0, 0, 0]
+    total_pred = [0, 0, 0]
+    total_correct = [0, 0, 0]
 
     num_examples = 0
     num_correct = 0
@@ -259,20 +259,20 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
             print(pred_label)
             print(total_correct)
             '''
-        num_correct += torch.sum(pred_label == label.data)
+        num_correct += float(torch.sum(pred_label == label.data))
         num_examples += len(label.data)
 
-        assert torch.sum(total_true) == num_examples
-        assert torch.sum(total_pred) == num_examples
-        assert torch.sum(total_correct) == num_correct
+        assert sum(total_true) == num_examples
+        assert sum(total_pred) == num_examples
+        assert sum(total_correct) == num_correct
 
         if counter % 10 == 0:
             print(counter)
 
     # Compute f1 scores (separate method?)
-    precision = torch.FloatTensor([0, 0, 0])
-    recall = torch.FloatTensor([0, 0, 0])
-    f1 = torch.FloatTensor([0, 0, 0])
+    precision = [0, 0, 0]
+    recall = [0, 0, 0]
+    f1 = [0, 0, 0]
     for i in range(0, NUM_LABELS):
         if total_pred[i] == 0:
             precision[i] = 0.0
