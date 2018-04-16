@@ -135,7 +135,7 @@ def train(Xtrain, Xdev, Xtest,
     print("dev f1 scores = " + str(dev_score))
     train_res.append(train_score)
     dev_res.append(dev_score)
-    test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
+    test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
     test_res.append(test_score)
 
     loss_function = nn.NLLLoss()
@@ -182,7 +182,7 @@ def train(Xtrain, Xdev, Xtest,
         print("dev f1 scores = " + str(dev_score))
         train_res.append(train_score)
         dev_res.append(dev_score)
-        test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
+        test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xtest,b using_GPU)
         test_res.append(test_score)
     return train_res, dev_res, test_res
 
