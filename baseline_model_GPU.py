@@ -117,7 +117,7 @@ def make_embeddings_vector(sentence, word_to_ix, word_to_polarity):
 
 def train(Xtrain, Xdev, Xtest,
           model, word_to_ix, ix_to_word,
-          using_GPU):
+          using_GPU, lr_decay=0.9):
     print("Evaluating before training...")
     train_res = []
     dev_res = []
@@ -169,6 +169,9 @@ def train(Xtrain, Xdev, Xtest,
             if (i % 10 == 0):
                 print("    " + str(i))
             i += 1
+
+        for param_group in optimizer.param_groups:
+            param_group['lr'] *= lr_decay
         '''
         # Just for 1 batch
         for batch in Xtrain:
