@@ -23,12 +23,6 @@ BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
 using_GPU = False
 
-
-# Fix issue with batch size 1 -- ? Idk what's wrong
-# Batch first
-# Masking the padding
-# Dropout <Check>
-# Sort batch by length
 # Decaying learning rate over time
 # Run on GPU
 
@@ -55,18 +49,10 @@ class Model(nn.Module):
 
         # The linear layer that maps from hidden state space to target space
         self.hidden2label = nn.Linear(hidden_dim, num_labels)
-        self.hidden = self.init_hidden()
 
         # Matrix of weights for each layer
         # Linear map from hidden layers to alpha for that layer
         self.attention = nn.Linear(hidden_dim, 1)
-
-    def init_hidden(self):
-        # The axes semantics are (minibatch_size, num_layers/seq_len, hidden_dim (!= embedding size))
-        # Initialize to 0's
-        # Returns (hidden state, cell state)
-        return (autograd.Variable(torch.zeros(self.batch_size, 1, self.hidden_dim)),
-                autograd.Variable(torch.zeros(self.batch_size, 1, self.hidden_dim)))
 
     def forward(self, word_vec, feature_vec, holder_target_vec, lengths=None):
         # Apply embeddings & prepare input
@@ -87,7 +73,7 @@ class Model(nn.Module):
             # print(lstm_input.data.size())
 
         # Pass through lstm
-        lstm_out, self.hidden = self.lstm(lstm_input, self.hidden)
+        lstm_out, _ = self.lstm(lstm_input)
 
         if lengths is not None:
             lstm_out = nn.utils.rnn.pad_packed_sequence(lstm_out, batch_first=True)[0]
@@ -167,8 +153,6 @@ def train(Xtrain, Xdev, Xtest,
             # We need to clear them out before each instance
             model.zero_grad()
             model.batch_size = len(label.data)  # set batch size
-
-            model.hidden = model.init_hidden()  # detach from last instance
 
             # Step 3. Run our forward pass.
             log_probs, alphas = model(words, polarity, holder_target, lengths)
@@ -255,7 +239,6 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
         if len(label.data) > BATCH_SIZE:
             print(label.data)
 
-        model.hidden = model.init_hidden()  # detaching it from its history on the last instance.
         log_probs, attention = model(words, polarity, holder_target, lengths)  # log probs: batch_size x 3
         pred_label = log_probs.data.max(1)[1]
 
