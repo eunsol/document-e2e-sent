@@ -21,6 +21,7 @@ HIDDEN_DIM = 3 * EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
+using_GPU = False
 
 
 # Fix issue with batch size 1 -- ? Idk what's wrong
@@ -67,7 +68,7 @@ class Model(nn.Module):
         return (autograd.Variable(torch.zeros(self.batch_size, 1, self.hidden_dim)),
                 autograd.Variable(torch.zeros(self.batch_size, 1, self.hidden_dim)))
 
-    def forward(self, word_vec, feature_vec, holder_target_vec):
+    def forward(self, word_vec, feature_vec, holder_target_vec, lengths=None):
         # Apply embeddings & prepare input
         word_embeds_vec = self.word_embeds(word_vec)
         feature_embeds_vec = self.feature_embeds(feature_vec)
@@ -76,21 +77,36 @@ class Model(nn.Module):
 
         # [word embeddings, feature embeddings]
         lstm_input = torch.cat((word_embeds_vec, feature_embeds_vec, ht_embeds_vec), 2)
-        #print(lstm_input.size())
+        # print(lstm_input.size())
+
+        # Mask out padding
+        if lengths is not None:
+            lengths = lengths.view(-1).tolist()
+            # print(lengths)
+            lstm_input = nn.utils.rnn.pack_padded_sequence(lstm_input, lengths, batch_first=True)
+            # print(lstm_input.data.size())
 
         # Pass through lstm
         lstm_out, self.hidden = self.lstm(lstm_input, self.hidden)
 
+        if lengths is not None:
+            lstm_out = nn.utils.rnn.pad_packed_sequence(lstm_out, batch_first=True)[0]
+            # print(lstm_out)
+            # if you visualize the output, padding is all 0, so can unpack now and weighted padding is 0,
+            # contributing 0 to weighted_lstm_out
+
+        dimension = 1
         # Compute and apply weights (attention) to each layer (so dim=1)
         alphas = self.attention(lstm_out)
-        alphas = F.softmax(alphas, dim=1) # batch_size x num_layers x 1
-        weighted_lstm_out = torch.sum(torch.mul(alphas, lstm_out), dim=1) # batch_size x hidden_dim
+        alphas = F.softmax(alphas, dim=dimension)  # batch_size x num_layers x 1
+        weighted_lstm_out = torch.sum(torch.mul(alphas, lstm_out), dim=dimension)  # batch_size x hidden_dim
         '''
         weighted_lstm_out = lstm_out[-1]
         '''
         # Get final results, passing in weighted lstm output:
-        tag_space = self.hidden2label(weighted_lstm_out) # batch_size x 1
-        log_probs = F.log_softmax(tag_space, dim=1) # batch_size x 1
+        tag_space = self.hidden2label(weighted_lstm_out)  # batch_size x 1
+        log_probs = F.log_softmax(tag_space, dim=dimension)  # batch_size x 1
+
         return log_probs, alphas
 
 
@@ -112,7 +128,8 @@ def make_embeddings_vector(sentence, word_to_ix, word_to_polarity):
 
 
 def train(Xtrain, Xdev, Xtest,
-          model, word_to_ix, ix_to_word):
+          model, word_to_ix, ix_to_word,
+          using_GPU):
     print("Evaluating before training...")
     train_res = []
     dev_res = []
@@ -121,18 +138,19 @@ def train(Xtrain, Xdev, Xtest,
     '''
     # Just for 1 batch
     for batch in Xtrain:
-        evaluate_sentence(model, word_to_ix, ix_to_word, batch)
+        evaluate_sentence(model, word_to_ix, ix_to_word, batch, using_GPU)
         break
     '''
     print("evaluating training...")
-    train_score = evaluate(model, word_to_ix, ix_to_word, Xtrain)
+    train_score, train_accs = evaluate(model, word_to_ix, ix_to_word, Xtrain, using_GPU)
     print("train f1 scores = " + str(train_score))
     print(Xdev)
-    dev_score = evaluate(model, word_to_ix, ix_to_word, Xdev)
+    dev_score, dev_accs = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
     print("dev f1 scores = " + str(dev_score))
     train_res.append(train_score)
     dev_res.append(dev_score)
-    test_res.append(evaluate(model, word_to_ix, ix_to_word, Xtest))
+    test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
+    test_res.append(test_score)
 
     loss_function = nn.NLLLoss()
 
@@ -143,7 +161,7 @@ def train(Xtrain, Xdev, Xtest,
         print("Epoch " + str(epoch))
         i = 0
         for batch in Xtrain:
-            words, polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
+            (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
 
             # Step 1. Remember that Pytorch accumulates gradients.
             # We need to clear them out before each instance
@@ -153,7 +171,7 @@ def train(Xtrain, Xdev, Xtest,
             model.hidden = model.init_hidden()  # detach from last instance
 
             # Step 3. Run our forward pass.
-            log_probs, alphas = model(words, polarity, holder_target)
+            log_probs, alphas = model(words, polarity, holder_target, lengths)
 
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
@@ -162,30 +180,32 @@ def train(Xtrain, Xdev, Xtest,
             loss.backward()
             optimizer.step()
             # print("loss = " + str(loss))
-            if (i % 100 == 0):
+            if (i % 10 == 0):
                 print("    " + str(i))
             i += 1
         '''
         # Just for 1 batch
         for batch in Xtrain:
-            evaluate_sentence(model, word_to_ix, ix_to_word, batch)
+            evaluate_sentence(model, word_to_ix, ix_to_word, batch, using_GPU)
             break
         '''
         print("Evaluating...")
-        train_score = evaluate(model, word_to_ix, ix_to_word, Xtrain)
+        print("evaluating training...")
+        train_score, train_accs = evaluate(model, word_to_ix, ix_to_word, Xtrain, using_GPU)
         print("train f1 scores = " + str(train_score))
         print(Xdev)
-        dev_score = evaluate(model, word_to_ix, ix_to_word, Xdev)
+        dev_score, dev_accs = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
         print("dev f1 scores = " + str(dev_score))
         train_res.append(train_score)
         dev_res.append(dev_score)
-        test_res.append(evaluate(model, word_to_ix, ix_to_word, Xtest))
+        test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
+        test_res.append(test_score)
     return train_res, dev_res, test_res
 
 
-def evaluate_sentence(model, word_to_ix, ix_to_word, batch):
-    words, polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
-    log_probs, attention = model(words, polarity, holder_target)
+def evaluate_sentence(model, word_to_ix, ix_to_word, batch, using_GPU):
+    (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
+    log_probs, attention = model(words, polarity, holder_target, lengths)
     input_sentence = decode(words[:, 0], ix_to_word)
     print(str(log_probs.data.max(1)[1]) + str(label))
     print(input_sentence)
@@ -211,40 +231,88 @@ def decode(word_indices, ix_to_word):
     return words
 
 
-def evaluate(model, word_to_ix, ix_to_word, Xs):
+def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
+    # Set model to eval mode to turn off dropout.
+    model.eval()
+
+    total_true = torch.LongTensor([0, 0, 0])
+    total_pred = torch.LongTensor([0, 0, 0])
+    total_correct = torch.LongTensor([0, 0, 0])
+
+    num_examples = 0
+    num_correct = 0
     predictions = []
     truths = []
 
     print("Iterate across : " + str(len(Xs)) + " batch(es)")
-    i = 0
+    counter = 0
     # count positive classifications in pos
     for batch in Xs:
-        i += 1
+        counter += 1
         # print(word_to_ix)
-        words, polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
+        (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
         model.batch_size = len(label.data)  # set batch size
         if len(label.data) > BATCH_SIZE:
             print(label.data)
 
         model.hidden = model.init_hidden()  # detaching it from its history on the last instance.
-        log_probs, attention = model(words, polarity, holder_target) # log probs: batch_size x 3
+        log_probs, attention = model(words, polarity, holder_target, lengths)  # log probs: batch_size x 3
         pred_label = log_probs.data.max(1)[1]
 
-        predictions.extend(list(pred_label))
-        truths.extend(list(label))
-        if (i % 10 == 0):
+
+        # Count the number of examples in this batch
+        for i in range(0, NUM_LABELS):
+            total_true[i] += torch.sum(label.data == i)
+            total_pred[i] += torch.sum(pred_label == i)
+            total_correct[i] += torch.sum((pred_label == i) * (label.data == i))
+            '''
             print(i)
-        '''
-        score = f1_score(list(pred_label), list(label.data.cpu().numpy()), labels=[-1, 0, 1], average=None)
-        print(score)
-        print
-        '''
-    print(list(pred_label))
-    print(list(label.data.cpu().numpy()))
-    score = f1_score(list(pred_label), list(label.data.cpu().numpy()), labels=[0, 1, 2], average=None)
+            print(label.data)
+            print(pred_label)
+            print(total_correct)
+            '''
+        num_correct += torch.sum(pred_label == label.data)
+        num_examples += len(label.data)
+
+        assert torch.sum(total_true) == num_examples
+        assert torch.sum(total_pred) == num_examples
+        assert torch.sum(total_correct) == num_correct
+
+        predictions.extend(list(pred_label))  # Use torch.cat here instead
+        truths.extend(list(label.data.cpu().numpy()))
+
+        if counter % 10 == 0:
+            print(counter)
+
+    # Compute f1 scores (separate method?)
+    precision = torch.FloatTensor([0, 0, 0])
+    recall = torch.FloatTensor([0, 0, 0])
+    f1 = torch.FloatTensor([0, 0, 0])
+    for i in range(0, NUM_LABELS):
+        if total_pred[i] == 0:
+            precision[i] = 0.0
+        else:
+            precision[i] = total_correct[i] / total_pred[i]
+        recall[i] = total_correct[i] / total_true[i]
+        if precision[i] + recall[i] == 0:
+            f1[i] = 0.0
+        else:
+            f1[i] = 2 * (precision[i] * recall[i]) / (precision[i] + recall[i])
+
+    # Compute accuracy
+    accuracy = num_correct / num_examples
+    print(accuracy)
+
+    print(list(predictions))
+    print(list(truths))
+    print(f1)
+    score = f1_score(list(predictions), list(truths), labels=[0, 1, 2], average=None)
     print(score)
 
-    return score
+    # Set the model back to train mode, to reactivate dropout.
+    model.train()
+
+    return f1, accuracy
 
 
 # plot across each epoch
@@ -272,9 +340,14 @@ def main():
                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
 
+    # Move the model to the GPU if available
+    if using_GPU:
+        model = model.cuda()
+
     train_c, dev_c, test_c = train(train_data, dev_data, test_data,
                                    model,
-                                   word_to_ix, ix_to_word)
+                                   word_to_ix, ix_to_word,
+                                   using_GPU)
 
     print(train_c)
     print(dev_c)

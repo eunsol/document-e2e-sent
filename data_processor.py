@@ -22,7 +22,7 @@ def parse_input_files(batch_size, embedding_dim):
     Reads the file with name filename
     """
     print("creating fields")
-    TEXT = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer)
+    TEXT = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer, include_lengths=True)
     LABEL = data.Field(sequential=False, use_vocab=False, batch_first=True)
     POLARITY = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer)
     # may not need these two?
@@ -64,7 +64,9 @@ def parse_input_files(batch_size, embedding_dim):
     train_iter, val_iter, test_iter = data.Iterator.splits(
         (train, val, test), sort_key=lambda x: len(x.text),
         repeat=False,
-        batch_sizes=(batch_size, len(val.examples), len(test.examples)), device=-1)
+        batch_sizes=(batch_size, len(val.examples), len(test.examples)),
+        device=-1,
+        sort_within_batch=True)
 
     print("Repeat = " + str(train_iter.repeat))
 
