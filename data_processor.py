@@ -17,7 +17,7 @@ def dummy_tokenizer(text):
     return text
 
 
-def parse_input_files(batch_size, embedding_dim):
+def parse_input_files(batch_size, embedding_dim, using_GPU):
     """
     Reads the file with name filename
     """
@@ -59,13 +59,17 @@ def parse_input_files(batch_size, embedding_dim):
     print("Dev length = " + str(len(val.examples)))
     print("Test length = " + str(len(test.examples)))
     #print(val.examples[0].text)
+  
+    device_usage = -1 
+    if using_GPU:
+        device_usage = 0
 
     print("splitting & batching data")
     train_iter, val_iter, test_iter = data.Iterator.splits(
         (train, val, test), sort_key=lambda x: len(x.text),
         repeat=False,
         batch_sizes=(batch_size, len(val.examples), len(test.examples)),
-        device=-1,
+        device=device_usage,
         sort_within_batch=True)
 
     print("Repeat = " + str(train_iter.repeat))
