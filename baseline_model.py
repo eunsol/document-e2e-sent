@@ -8,8 +8,7 @@ import torch.optim as optim
 import numpy as np
 import random
 from random import shuffle
-import matplotlib.pyplot as plt
-from matplotlib import ticker
+import graph_results as plotter
 import data_processor as parser
 from sklearn.metrics import f1_score
 
@@ -124,7 +123,7 @@ def train(Xtrain, Xdev, Xtest,
     '''
     # Just for 1 batch
     for batch in Xtrain:
-        evaluate_sentence(model, word_to_ix, ix_to_word, batch, using_GPU)
+        plotter.graph_attention(model, word_to_ix, ix_to_word, batch, using_GPU)
         break
     '''
     print("evaluating training...")
@@ -170,7 +169,7 @@ def train(Xtrain, Xdev, Xtest,
         '''
         # Just for 1 batch
         for batch in Xtrain:
-            evaluate_sentence(model, word_to_ix, ix_to_word, batch, using_GPU)
+            plotter.graph_attention(model, word_to_ix, ix_to_word, batch, using_GPU)
             break
         '''
         print("Evaluating...")
@@ -185,29 +184,6 @@ def train(Xtrain, Xdev, Xtest,
         test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
     return train_res, dev_res, test_res
-
-
-def evaluate_sentence(model, word_to_ix, ix_to_word, batch, using_GPU):
-    (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
-    log_probs, attention = model(words, polarity, holder_target, lengths)
-    input_sentence = decode(words[:, 0], ix_to_word)
-    print(str(log_probs.data.max(1)[1]) + str(label))
-    print(input_sentence)
-    instance_attention = attention[:, 0].data.numpy()
-    print(instance_attention)
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    cax = ax.matshow(instance_attention, cmap='bone')
-    fig.colorbar(cax)
-    # Set up axes
-    ax.set_yticklabels([''] + input_sentence)
-    ax.set_xticklabels([''])
-
-    # Show label at every tick
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
-
-    plt.show()
 
 
 def decode(word_indices, ix_to_word):
@@ -298,17 +274,6 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
     return f1, accuracy
 
 
-# plot across each epoch
-def plot(dev_accs, train_accs):
-    plt.plot(range(0, epochs + 1), dev_accs, c='red', label='Dev Set Accuracy')
-    plt.plot(range(0, epochs + 1), train_accs, c='blue', label='Train Set Accuracy')
-    plt.xlabel('Epochs')
-    plt.ylabel('F1 Score')
-    plt.title('F1 Score vs. # of Epochs')
-    plt.legend()
-    plt.show()
-
-
 def main():
     train_data, dev_data, test_data, TEXT = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM)
 
@@ -335,8 +300,7 @@ def main():
     print(train_c)
     print(dev_c)
     print(test_c)
-    '''                   
-    plot(dev_c, train_c)
+    '''
 
     print(str(dev_c))
     best_epochs = np.argmax(np.array(dev_c))
