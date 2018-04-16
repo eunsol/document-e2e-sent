@@ -8,6 +8,7 @@ import torch.optim as optim
 import numpy as np
 import random
 from random import shuffle
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import graph_results as plotter
 import data_processor as parser
 
@@ -145,13 +146,13 @@ def train(Xtrain, Xdev, Xtest,
 #    test_accs.append(test_acc)
 
     loss_function = nn.NLLLoss()
-    losses = []
     losses_epoch = []
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
     optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.05)
 
     for epoch in range(0, epochs):
+        losses = []
         print("Epoch " + str(epoch))
         i = 0
         for batch in Xtrain:
@@ -175,8 +176,9 @@ def train(Xtrain, Xdev, Xtest,
             if (i % 10 == 0):
                 print("    " + str(i))
             i += 1
-        print("loss = " + str(min(losses)))
-        losses_epoch.append(min(losses))
+        print("loss = " + str((sum(losses) / len(losses))))
+        losses_epoch.append(float(sum(losses)) / float(len(losses)))
+        # Apply decay
         if (epoch % 10 == 0):
             for param_group in optimizer.param_groups:
                 param_group['lr'] *= lr_decay

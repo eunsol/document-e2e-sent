@@ -49,7 +49,6 @@ def parse_input_files(batch_size, embedding_dim, using_GPU):
 
     print("loading word embeddings")
     TEXT.build_vocab(train, val, test, vectors="glove.6B." + str(embedding_dim) + "d")
-    print(TEXT.vocab.stoi)
     POLARITY.build_vocab(train, val, test)
     print(POLARITY.vocab.stoi)
     HOLDER_TARGET.build_vocab(train, val, test)
