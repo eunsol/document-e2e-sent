@@ -149,7 +149,7 @@ def train(Xtrain, Xdev, Xtest,
     losses_epoch = []
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.05)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01)
 
     for epoch in range(0, epochs):
         losses = []
