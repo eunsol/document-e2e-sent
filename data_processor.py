@@ -37,8 +37,8 @@ def parse_input_files(batch_size, embedding_dim, using_GPU):
 
     print("parsing data from file")
     train, val, test = data.TabularDataset.splits(
-        path='./data/new_annot/polarity_label_holdtarg', train='new_train.json',
-        validation='acl_dev_eval_new.json', test='acl_test_new.json',
+        path='./data/new_annot/trainsplit_holdtarg', train='train.json',
+        validation='dev.json', test='test.json',
         format='json',
         fields={'token': ('text', TEXT), 'label': ('label', LABEL),
                 #'holder': ('holder', HOLDER), 'target': ('target', TARGET),
