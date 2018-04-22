@@ -145,7 +145,8 @@ def train(Xtrain, Xdev, Xtest,
     train_accs.append(train_acc)
     dev_accs.append(dev_acc)
     
-    test_score, test_acc, test_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtest, using_GPU)
+    test_score, test_acc, test_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtest, using_GPU,
+                                                 error_analysis=False)
     test_res.append(test_score)
     test_accs.append(test_acc)
 
@@ -210,7 +211,8 @@ def train(Xtrain, Xdev, Xtest,
             wrongs_to_ret = [train_wrongs, dev_wrongs]
             print("Updated best epoch: " + str(dev_f1_aves[best_epoch])) 
         dev_accs.append(dev_acc)
-        test_score, test_acc, test_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtest, using_GPU)
+        test_score, test_acc, test_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtest, using_GPU,
+                                                     error_analysis=False)
         test_res.append(test_score)
         test_accs.append(test_acc)
 
@@ -222,10 +224,10 @@ def decode(word_indices, ix_to_word):
     return words
 
 
-def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU):
+def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_analysis=ERROR_ANALYSIS):
     # Set model to eval mode to turn off dropout.
     model.eval()
-    wrong_docs = {}
+    wrong_docs = [[], [], []]
 
     total_true = [0, 0, 0]
     total_pred = [0, 0, 0]
@@ -264,15 +266,25 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU):
             total_correct[i] += torch.sum((pred_label == i) * (label.data == i))
 
         # Collect incorrect examples for error analysis
-        if ERROR_ANALYSIS:
+        if error_analysis:
+            mask = (label.data != pred_label)
+            docs = docid[mask]
+            wrong_doc = list(map(lambda x: ix_to_docid[int(x)], docs))
+            wrong_label = list(pred_label[mask])
+            actual_label = list(label.data[mask])
+            wrong_docs[0].extend(wrong_doc)
+            wrong_docs[1].extend(wrong_label)
+            wrong_docs[2].extend(actual_label)
+            '''
             for i in range(0, len(label.data)):
                 if label.data[i] != pred_label[i]:
                     wrong_doc = ix_to_docid[int(docid[i].data)]
                     # wrong_ht = holder_target[i, :]
                     if wrong_doc not in wrong_docs:
-                        wrong_docs[wrong_doc] = [[pred_label, label.data.numpy()]]
+                        wrong_docs[wrong_doc] = [[pred_label[i], label.data.numpy()]]
                     else:
                         wrong_docs[wrong_doc].append([pred_label, label.data.numpy()])
+            '''
 
         # Accuracy metrics
         num_correct += float(torch.sum(pred_label == label.data))
