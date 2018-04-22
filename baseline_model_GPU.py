@@ -20,7 +20,8 @@ HIDDEN_DIM = 3 * EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.5
-using_GPU = True 
+using_GPU = False
+ERROR_ANALYSIS = True
 
 # Decaying learning rate over time
 # Run on GPU
@@ -114,7 +115,7 @@ def make_embeddings_vector(sentence, word_to_ix, word_to_polarity):
 
 
 def train(Xtrain, Xdev, Xtest,
-          model, word_to_ix, ix_to_word,
+          model, word_to_ix, ix_to_word, ix_to_docid,
           using_GPU, lr_decay=1):
     print("Evaluating before training...")
     train_res = []
@@ -132,18 +133,19 @@ def train(Xtrain, Xdev, Xtest,
         break
     '''
     print("evaluating training...")
-    train_score, train_acc = evaluate(model, word_to_ix, ix_to_word, Xtrain, using_GPU)
+    train_score, train_acc, train_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtrain, using_GPU)
     print("train f1 scores = " + str(train_score))
-    dev_score, dev_acc = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
+    dev_score, dev_acc, dev_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xdev, using_GPU)
     print("dev f1 scores = " + str(dev_score))
     train_res.append(train_score)
     dev_res.append(dev_score)
     dev_f1_aves.append(sum(dev_score) / len(dev_score))
     best_epoch = 0
+    wrongs_to_ret = [train_wrongs, dev_wrongs]
     train_accs.append(train_acc)
     dev_accs.append(dev_acc)
     
-    test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
+    test_score, test_acc, test_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtest, using_GPU)
     test_res.append(test_score)
     test_accs.append(test_acc)
 
@@ -192,23 +194,27 @@ def train(Xtrain, Xdev, Xtest,
         '''
         print("Evaluating...")
         print("evaluating training...")
-        train_score, train_acc = evaluate(model, word_to_ix, ix_to_word, Xtrain, using_GPU)
+        train_score, train_acc, train_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtrain, using_GPU)
         print("train f1 scores = " + str(train_score))
+        print(train_wrongs)
         print(Xdev)
-        dev_score, dev_acc = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
+        dev_score, dev_acc, dev_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xdev, using_GPU)
         print("dev f1 scores = " + str(dev_score))
+        print(dev_wrongs)
         train_res.append(train_score)
         train_accs.append(train_acc)
         dev_res.append(dev_score)
         dev_f1_aves.append(sum(dev_score) / len(dev_score))
         if (dev_f1_aves[epoch] > dev_f1_aves[best_epoch]):
             best_epoch = epoch
+            wrongs_to_ret = [train_wrongs, dev_wrongs]
             print("Updated best epoch: " + str(dev_f1_aves[best_epoch])) 
         dev_accs.append(dev_acc)
-        test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
+        test_score, test_acc, test_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
-    return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, losses_epoch, best_epoch
+
+    return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, losses_epoch, best_epoch, wrongs_to_ret
 
 
 def decode(word_indices, ix_to_word):
@@ -216,9 +222,10 @@ def decode(word_indices, ix_to_word):
     return words
 
 
-def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
+def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU):
     # Set model to eval mode to turn off dropout.
     model.eval()
+    wrong_docs = {}
 
     total_true = [0, 0, 0]
     total_pred = [0, 0, 0]
@@ -234,6 +241,8 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
         counter += 1
         # print(word_to_ix)
         (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
+        docid = batch.docid
+
         words.volatile=True
         lengths.volatile=True
         polarity.volatile=True
@@ -253,12 +262,19 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
             total_true[i] += torch.sum(label.data == i)
             total_pred[i] += torch.sum(pred_label == i)
             total_correct[i] += torch.sum((pred_label == i) * (label.data == i))
-            '''
-            print(i)
-            print(label.data)
-            print(pred_label)
-            print(total_correct)
-            '''
+
+        # Collect incorrect examples for error analysis
+        if ERROR_ANALYSIS:
+            for i in range(0, len(label.data)):
+                if label.data[i] != pred_label[i]:
+                    wrong_doc = ix_to_docid[int(docid[i].data)]
+                    # wrong_ht = holder_target[i, :]
+                    if wrong_doc not in wrong_docs:
+                        wrong_docs[wrong_doc] = 1
+                    else:
+                        wrong_docs[wrong_doc] += 1
+
+        # Accuracy metrics
         num_correct += float(torch.sum(pred_label == label.data))
         num_examples += len(label.data)
 
@@ -295,14 +311,16 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
     # Set the model back to train mode, to reactivate dropout.
     model.train()
 
-    return f1, accuracy
+    print(wrong_docs)
+    return f1, accuracy, wrong_docs
 
 
 def main():
-    train_data, dev_data, test_data, TEXT = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU)
+    train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU)
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos
+    ix_to_docid = DOCID.vocab.itos
 
     VOCAB_SIZE = len(word_to_ix)
 
@@ -316,10 +334,10 @@ def main():
     if using_GPU:
         model = model.cuda()
 
-    train_c, dev_c, test_c, train_a, dev_a, test_a, losses, best_epoch = \
+    train_c, dev_c, test_c, train_a, dev_a, test_a, losses, best_epoch, wrongs = \
                                    train(train_data, dev_data, test_data,
                                    model,
-                                   word_to_ix, ix_to_word,
+                                   word_to_ix, ix_to_word, ix_to_docid,
                                    using_GPU)
     print("Train results: ")
     print("    " + str(train_c))
@@ -343,6 +361,9 @@ def main():
     print("Test results: ")
     print("    " + str(test_c[best_epoch]) + " " + str(sum(test_c[best_epoch]) / len(test_c[best_epoch])))
     print("    " + str(test_a[best_epoch]))
+
+    print("Wrongs")
+    print(wrongs)
  
     '''                   
     print(str(dev_c))
