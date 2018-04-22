@@ -17,7 +17,8 @@ def dummy_tokenizer(text):
     return text
 
 
-def parse_input_files(batch_size, embedding_dim, using_GPU):
+def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new_annot/trainsplit_holdtarg",
+                      train_name="train.json", dev_name="dev.json", test_name="test.json"):
     """
     Reads the file with name filename
     """
@@ -37,8 +38,8 @@ def parse_input_files(batch_size, embedding_dim, using_GPU):
 
     print("parsing data from file")
     train, val, test = data.TabularDataset.splits(
-        path='./data/new_annot/trainsplit_holdtarg', train='train.json',
-        validation='dev.json', test='test.json',
+        path=filepath, train=train_name,
+        validation=dev_name, test=test_name,
         format='json',
         fields={'token': ('text', TEXT), 'label': ('label', LABEL),
                 #'holder': ('holder', HOLDER), 'target': ('target', TARGET),
@@ -59,7 +60,7 @@ def parse_input_files(batch_size, embedding_dim, using_GPU):
     print("Test length = " + str(len(test.examples)))
     #print(val.examples[0].text)
   
-    device_usage = -1 
+    device_usage = -1
     if using_GPU:
         device_usage = 0
 
