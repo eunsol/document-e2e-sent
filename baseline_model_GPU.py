@@ -19,7 +19,7 @@ EMBEDDING_DIM = 50
 HIDDEN_DIM = 3 * EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
-DROPOUT_RATE = 0.2
+DROPOUT_RATE = 0.5
 using_GPU = True 
 
 # Decaying learning rate over time
@@ -119,6 +119,7 @@ def train(Xtrain, Xdev, Xtest,
     print("Evaluating before training...")
     train_res = []
     dev_res = []
+    dev_f1_aves = []
     test_res = []
     train_accs = []
     dev_accs = []
@@ -133,23 +134,24 @@ def train(Xtrain, Xdev, Xtest,
     print("evaluating training...")
     train_score, train_acc = evaluate(model, word_to_ix, ix_to_word, Xtrain, using_GPU)
     print("train f1 scores = " + str(train_score))
-    print(Xdev)
     dev_score, dev_acc = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
     print("dev f1 scores = " + str(dev_score))
     train_res.append(train_score)
     dev_res.append(dev_score)
+    dev_f1_aves.append(sum(dev_score) / len(dev_score))
+    best_epoch = 0
     train_accs.append(train_acc)
     dev_accs.append(dev_acc)
     
-#    test_score, test_accs = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
-#    test_res.append(test_score)
-#    test_accs.append(test_acc)
+    test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
+    test_res.append(test_score)
+    test_accs.append(test_acc)
 
     loss_function = nn.NLLLoss()
     losses_epoch = []
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01, weight_decay=0)
 
     for epoch in range(0, epochs):
         losses = []
@@ -198,11 +200,15 @@ def train(Xtrain, Xdev, Xtest,
         train_res.append(train_score)
         train_accs.append(train_acc)
         dev_res.append(dev_score)
+        dev_f1_aves.append(sum(dev_score) / len(dev_score))
+        if (dev_f1_aves[epoch] > dev_f1_aves[best_epoch]):
+            best_epoch = epoch
+            print("Updated best epoch: " + str(dev_f1_aves[best_epoch])) 
         dev_accs.append(dev_acc)
-#        test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
-#        test_res.append(test_score)
-#        test_accs.append(test_acc)
-    return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, losses_epoch
+        test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
+        test_res.append(test_score)
+        test_accs.append(test_acc)
+    return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, losses_epoch, best_epoch
 
 
 def decode(word_indices, ix_to_word):
@@ -235,9 +241,10 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
         label.volatile=True
 
         model.batch_size = len(label.data)  # set batch size
+        '''
         if len(label.data) > BATCH_SIZE:
             print(label.data)
-
+        '''
         log_probs, attention = model(words, polarity, holder_target, lengths)  # log probs: batch_size x 3
         pred_label = log_probs.data.max(1)[1]
 
@@ -309,18 +316,34 @@ def main():
     if using_GPU:
         model = model.cuda()
 
-    train_c, dev_c, test_c, train_a, dev_a, test_a, losses = train(train_data, dev_data, test_data,
+    train_c, dev_c, test_c, train_a, dev_a, test_a, losses, best_epoch = \
+                                   train(train_data, dev_data, test_data,
                                    model,
                                    word_to_ix, ix_to_word,
                                    using_GPU)
-
-    print(train_c)
-    print(train_a)
-    print(dev_c)
-    print(dev_a)
-    print(test_c)
-    print(test_a)
+    print("Train results: ")
+    print("    " + str(train_c))
+    print("    " + str(train_a))
+    print("Dev results: ")
+    print("    " + str(dev_c))
+    print("    " + str(dev_a))
+    print("Test results: ")
+    print("    " + str(test_c))
+    print("    " + str(test_a))
+    print("Losses: ")
     print(losses)
+
+    print("Best epoch = " + str(best_epoch))
+    print("Train results: ")
+    print("    " + str(train_c[best_epoch]))
+    print("    " + str(train_a[best_epoch]))
+    print("Dev results: ")
+    print("    " + str(dev_c[best_epoch]))
+    print("    " + str(dev_a[best_epoch]))
+    print("Test results: ")
+    print("    " + str(test_c[best_epoch]))
+    print("    " + str(test_a[best_epoch]))
+ 
     '''                   
     print(str(dev_c))
     best_epochs = np.argmax(np.array(dev_c))
