@@ -119,7 +119,10 @@ def plot_accross_epochs(title, train_accs, dev_accs = None, test_accs = None):
 
     plt.show()
 
+def main():
+    plot_f1(trains, devs)
+    plot_accross_epochs("Accuracy", train_a2, dev_a2)
+    plot_accross_epochs("NLLLoss", losses2)
 
-plot_f1(trains, devs)
-plot_accross_epochs("Accuracy", train_a2, dev_a2)
-plot_accross_epochs("NLLLoss", losses2)
+if __name__ == "__main__":
+    main()
