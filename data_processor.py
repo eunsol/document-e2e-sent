@@ -26,6 +26,7 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     TEXT = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer, include_lengths=True)
     LABEL = data.Field(sequential=False, use_vocab=False, batch_first=True)
     POLARITY = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer)
+    DOCID = data.Field(sequential=False, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer)
     # may not need these two?
     HOLDER = data.Field(sequential=True, use_vocab=True, batch_first=True,
                         tokenize=tokenizer)
@@ -44,7 +45,8 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
         fields={'token': ('text', TEXT), 'label': ('label', LABEL),
                 #'holder': ('holder', HOLDER), 'target': ('target', TARGET),
                 'polarity': ('polarity', POLARITY),
-                'holder_target': ('holder_target', HOLDER_TARGET)}
+                'holder_target': ('holder_target', HOLDER_TARGET),
+                'docid': ('docid', DOCID)}
                 #'holder_index': ('h_ind', H_IND), 'target_index': ('t_ind', T_IND)}
     )
 
@@ -54,6 +56,7 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     print(POLARITY.vocab.stoi)
     HOLDER_TARGET.build_vocab(train, val, test)
     print(HOLDER_TARGET.vocab.stoi)
+    DOCID.build_vocab(train, val, test)
 
     print("Train length = " + str(len(train.examples)))
     print("Dev length = " + str(len(val.examples)))
@@ -74,4 +77,4 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
 
     print("Repeat = " + str(train_iter.repeat))
 
-    return train_iter, val_iter, test_iter, TEXT
+    return train_iter, val_iter, test_iter, TEXT, DOCID
