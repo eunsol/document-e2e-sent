@@ -335,13 +335,13 @@ def main():
 
     print("Best epoch = " + str(best_epoch))
     print("Train results: ")
-    print("    " + str(train_c[best_epoch]))
+    print("    " + str(train_c[best_epoch]) + " " + str(sum(train_c[best_epoch]) / len(train_c[best_epoch])))
     print("    " + str(train_a[best_epoch]))
     print("Dev results: ")
-    print("    " + str(dev_c[best_epoch]))
+    print("    " + str(dev_c[best_epoch]) + " " + str(sum(dev_c[best_epoch]) / len(dev_c[best_epoch])))
     print("    " + str(dev_a[best_epoch]))
     print("Test results: ")
-    print("    " + str(test_c[best_epoch]))
+    print("    " + str(test_c[best_epoch]) + " " + str(sum(test_c[best_epoch]) / len(test_c[best_epoch])))
     print("    " + str(test_a[best_epoch]))
  
     '''                   
