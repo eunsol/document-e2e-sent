@@ -270,9 +270,9 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU):
                     wrong_doc = ix_to_docid[int(docid[i].data)]
                     # wrong_ht = holder_target[i, :]
                     if wrong_doc not in wrong_docs:
-                        wrong_docs[wrong_doc] = 1
+                        wrong_docs[wrong_doc] = [[pred_label, label.data.numpy()]]
                     else:
-                        wrong_docs[wrong_doc] += 1
+                        wrong_docs[wrong_doc].append([pred_label, label.data.numpy()])
 
         # Accuracy metrics
         num_correct += float(torch.sum(pred_label == label.data))
