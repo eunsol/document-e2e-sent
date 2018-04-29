@@ -13,12 +13,14 @@ def tokenizer(text):
     return to_ret
 '''
 
+label_map = {"Positive":2, "None":1, "Null":1, "Negative":0}
+
 def dummy_tokenizer(text):
     # already in the form of a list
     return text
 
 
-def custom_post(input, *args):
+def custom_post_inds(input, *args):
     if input == "<pad>":
         return [-1, -1]
     return [index if index != "<pad>" else [-1, -1] for index in input]
@@ -39,9 +41,9 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     # TARGET = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=tokenizer)
 
     HOLDER_TARGET = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer)
-    H_IND = data.Field(sequential=True, use_vocab=False, batch_first=True, postprocessing=Pipeline(custom_post),
+    H_IND = data.Field(sequential=True, use_vocab=False, batch_first=True, postprocessing=Pipeline(custom_post_inds),
                        include_lengths=True)
-    T_IND = data.Field(sequential=True, use_vocab=False, batch_first=True, postprocessing=Pipeline(custom_post),
+    T_IND = data.Field(sequential=True, use_vocab=False, batch_first=True, postprocessing=Pipeline(custom_post_inds),
                        include_lengths=True)
 
     print("parsing data from file")
@@ -52,7 +54,7 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
         fields={'token': ('text', TEXT), 'label': ('label', LABEL),
                 #'holder': ('holder', HOLDER), 'target': ('target', TARGET),
                 'polarity': ('polarity', POLARITY),
-                'holder_target': ('holder_target', HOLDER_TARGET),
+                # 'holder_target': ('holder_target', HOLDER_TARGET),
                 'docid': ('docid', DOCID),
                 'holder_index': ('holder_index', H_IND), 'target_index': ('target_index', T_IND)}
     )

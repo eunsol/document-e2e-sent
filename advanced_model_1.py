@@ -23,7 +23,7 @@ HIDDEN_DIM = 2 * EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
-using_GPU = True
+using_GPU = False
 
 
 def logsumexp(inputs, dim=None, keepdim=False):
@@ -95,7 +95,7 @@ class Model(nn.Module):
         # Scoring pairwise sentiment: bilinear approach
         self.pairwise_sentiment_score = nn.Bilinear(2*hidden_dim, 2*hidden_dim, out_features=num_labels)
 
-    def forward(self, word_vec, feature_vec, holder_target_vec, lengths=None,
+    def forward(self, word_vec, feature_vec, lengths=None,
                 holder_inds=None, target_inds=None, holder_lengths=None, target_lengths=None):
         # Apply embeddings & prepare input
         word_embeds_vec = self.word_embeds(word_vec)
@@ -213,7 +213,7 @@ def train(Xtrain, Xdev, Xtest,
         print("Epoch " + str(epoch))
         i = 0
         for batch in Xtrain:
-            (words, lengths), polarity, label, h_t = batch.text, batch.polarity, batch.label, batch.holder_target
+            (words, lengths), polarity, label = batch.text, batch.polarity, batch.label
             (holders, holder_lengths) = batch.holder_index
             (targets, target_lengths) = batch.target_index
 
@@ -223,7 +223,7 @@ def train(Xtrain, Xdev, Xtest,
             model.batch_size = len(label.data)  # set batch size
 
             # Step 3. Run our forward pass.
-            log_probs = model(words, polarity, h_t, lengths,
+            log_probs = model(words, polarity, lengths,
                               holders, targets, holder_lengths, target_lengths)  # log probs: batch_size x 3
 
             # Step 4. Compute the loss, gradients, and update the parameters by
@@ -291,7 +291,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
     for batch in Xs:
         counter += 1
         # print(word_to_ix)
-        (words, lengths), polarity, label, h_t = batch.text, batch.polarity, batch.label, batch.holder_target
+        (words, lengths), polarity, label = batch.text, batch.polarity, batch.label
         (holders, holder_lengths) = batch.holder_index
         (targets, target_lengths) = batch.target_index
 
@@ -303,7 +303,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
         if len(label.data) > BATCH_SIZE:
             print(label.data)
         '''
-        log_probs = model(words, polarity, h_t, lengths,
+        log_probs = model(words, polarity, lengths,
                           holders, targets, holder_lengths, target_lengths)  # log probs: batch_size x 3
         pred_label = log_probs.data.max(1)[1]
 
@@ -325,7 +325,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
         assert sum(total_pred) == num_examples
         assert sum(total_correct) == num_correct
 
-        if counter % 10 == 0:
+        if counter % 50 == 0:
             print(counter)
 
     # Compute f1 scores (separate method?)
@@ -359,8 +359,8 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
 
 def main():
     train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
-                                                                            filepath='./data/new_annot/polarity_label_holdtarg',
-                                                                            train_name='new_train.json',
+                                                                            filepath='./data/new_annot/polarity_label',
+                                                                            train_name='train_combined.json',
                                                                             dev_name='acl_dev_eval_new.json',
                                                                             test_name='acl_test_new.json')
 
