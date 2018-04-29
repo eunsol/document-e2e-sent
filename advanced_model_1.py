@@ -358,7 +358,11 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
 
 
 def main():
-    train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU)
+    train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
+                                                                            filepath='./data/new_annot/polarity_label_holdtarg',
+                                                                            train_name='new_train.json',
+                                                                            dev_name='acl_dev_eval_new.json',
+                                                                            test_name='acl_test_new.json')
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos
