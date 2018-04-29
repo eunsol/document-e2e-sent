@@ -23,7 +23,7 @@ HIDDEN_DIM = 2 * EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
-using_GPU = False
+using_GPU = True
 
 
 def logsumexp(inputs, dim=None, keepdim=False):
@@ -206,7 +206,7 @@ def train(Xtrain, Xdev, Xtest,
     losses_epoch = []
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01, weight_decay=0)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0001, weight_decay=0)
 
     for epoch in range(0, epochs):
         losses = []
