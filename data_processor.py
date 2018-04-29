@@ -1,20 +1,27 @@
 from torchtext import data
+from torchtext.data import Pipeline
 import torch
 import random
 import spacy
 import numpy as np
 
-spacy_en = spacy.load('en')
+#spacy_en = spacy.load('en')
 
-
+'''
 def tokenizer(text):
     to_ret = [tok.text for tok in spacy_en.tokenizer(text)]
     return to_ret
-
+'''
 
 def dummy_tokenizer(text):
     # already in the form of a list
     return text
+
+
+def custom_post(input, *args):
+    if input == "<pad>":
+        return [-1, -1]
+    return [index if index != "<pad>" else [-1, -1] for index in input]
 
 
 def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new_annot/trainsplit_holdtarg",
@@ -28,14 +35,14 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     POLARITY = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer)
     DOCID = data.Field(sequential=False, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer)
     # may not need these two?
-    HOLDER = data.Field(sequential=True, use_vocab=True, batch_first=True,
-                        tokenize=tokenizer)
-    TARGET = data.Field(sequential=True, use_vocab=True, batch_first=True,
-                        tokenize=tokenizer)
+    # HOLDER = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=tokenizer)
+    # TARGET = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=tokenizer)
 
     HOLDER_TARGET = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer)
-    H_IND = data.Field(sequential=False, use_vocab=False, batch_first=True)
-    T_IND = data.Field(sequential=False, use_vocab=False, batch_first=True)
+    H_IND = data.Field(sequential=True, use_vocab=False, batch_first=True, postprocessing=Pipeline(custom_post),
+                       include_lengths=True)
+    T_IND = data.Field(sequential=True, use_vocab=False, batch_first=True, postprocessing=Pipeline(custom_post),
+                       include_lengths=True)
 
     print("parsing data from file")
     train, val, test = data.TabularDataset.splits(
@@ -46,8 +53,8 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
                 #'holder': ('holder', HOLDER), 'target': ('target', TARGET),
                 'polarity': ('polarity', POLARITY),
                 'holder_target': ('holder_target', HOLDER_TARGET),
-                'docid': ('docid', DOCID)}
-                #'holder_index': ('h_ind', H_IND), 'target_index': ('t_ind', T_IND)}
+                'docid': ('docid', DOCID),
+                'holder_index': ('holder_index', H_IND), 'target_index': ('target_index', T_IND)}
     )
 
     print("loading word embeddings")
