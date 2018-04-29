@@ -336,8 +336,8 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
         if total_pred[i] == 0:
             precision[i] = 0.0
         else:
-            precision[i] = total_correct[i] / total_pred[i]
-        recall[i] = total_correct[i] / total_true[i]
+            precision[i] = float(total_correct[i]) / float(total_pred[i])
+        recall[i] = float(total_correct[i]) / float(total_true[i])
         if precision[i] + recall[i] == 0:
             f1[i] = 0.0
         else:
