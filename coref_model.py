@@ -11,6 +11,7 @@ from random import shuffle
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import graph_results as plotter
 import data_processor as parser
+from allennlp.modules import FeedForward
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
@@ -21,6 +22,7 @@ NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
 using_GPU = False
+
 
 class Model(nn.Module):
     def __init__(self, num_labels, vocab_size, embeddings_size,
@@ -47,9 +49,12 @@ class Model(nn.Module):
 
         # Matrix of weights for each layer
         # Linear map from hidden layers to alpha for that layer
-        self.attention = nn.Linear(2 * hidden_dim, 1)
+        #self.attention = nn.Linear(2 * hidden_dim, 1)
+        # Attempting feedforward attention, using 2 layers and sigmoid activation fxn
+        self.attention = FeedForward(input_dim=2*hidden_dim, num_layers=2, hidden_dims=[hidden_dim, 1],
+                                     activations=nn.Sigmoid())
 
-    def forward(self, word_vec, feature_vec, lengths=None):
+    def forward(self, word_vec, feature_vec, lengths=None, span_vec):
         # Apply embeddings & prepare input
         word_embeds_vec = self.word_embeds(word_vec)
         feature_embeds_vec = self.feature_embeds(feature_vec)
@@ -276,7 +281,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
 
 
 def main():
-    train_data, dev_data, test_data, TEXT = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU)
+    train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU)
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos
