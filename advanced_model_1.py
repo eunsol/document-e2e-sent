@@ -180,6 +180,10 @@ def train(Xtrain, Xdev, Xtest,
     dev_accs = []
     test_accs = []
 
+    loss_function = nn.NLLLoss(weight=torch.FloatTensor([2.7, 0.01, 1]).cuda())
+    train_loss_epoch = []
+    dev_loss_epoch = []
+
     '''
     # Just for 1 batch
     for batch in Xtrain:
@@ -201,9 +205,6 @@ def train(Xtrain, Xdev, Xtest,
     test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
     test_res.append(test_score)
     test_accs.append(test_acc)
-
-    loss_function = nn.NLLLoss(weight=torch.FloatTensor([2.7, 0.1, 1]).cuda())
-    losses_epoch = []
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=10e-4, weight_decay=0)
@@ -237,7 +238,8 @@ def train(Xtrain, Xdev, Xtest,
                 print("    " + str(i))
             i += 1
         print("loss = " + str((sum(losses) / len(losses))))
-        losses_epoch.append(float(sum(losses)) / float(len(losses)))
+        train_loss_epoch.append(float(sum(losses)) / float(len(losses)))
+        train_loss_epoch.append(float(sum(losses)) / float(len(losses)))
         # Apply decay
         if (epoch % 10 == 0):
             for param_group in optimizer.param_groups:
@@ -253,7 +255,9 @@ def train(Xtrain, Xdev, Xtest,
         train_score, train_acc = evaluate(model, word_to_ix, ix_to_word, Xtrain, using_GPU)
         print("train f1 scores = " + str(train_score))
         print(Xdev)
-        dev_score, dev_acc = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
+        dev_score, dev_acc = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU,
+                                                  losses=dev_loss_epoch, loss_fxn=loss_function)
+        print("dev loss = " + str(dev_loss_epoch[len(dev_loss_epoch) - 1]))
         print("dev f1 scores = " + str(dev_score))
         train_res.append(train_score)
         train_accs.append(train_acc)
@@ -266,7 +270,7 @@ def train(Xtrain, Xdev, Xtest,
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
-    return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, losses_epoch, best_epoch
+    return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, train_loss_epoch, best_epoch
 
 
 def decode(word_indices, ix_to_word):
@@ -274,7 +278,8 @@ def decode(word_indices, ix_to_word):
     return words
 
 
-def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
+def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
+             losses=None, loss_fxn=None):
     # Set model to eval mode to turn off dropout.
     model.eval()
 
@@ -287,6 +292,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
 
     print("Iterate across : " + str(len(Xs)) + " batch(es)")
     counter = 0
+    loss_this_batch = []
     # count positive classifications in pos
     for batch in Xs:
         counter += 1
@@ -305,6 +311,9 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
         '''
         log_probs = model(words, polarity, lengths,
                           holders, targets, holder_lengths, target_lengths)  # log probs: batch_size x 3
+        if losses is not None:
+            loss = loss_fxn(log_probs, label)
+            loss_this_batch.append(float(loss))
         pred_label = log_probs.data.max(1)[1]
 
         # Count the number of examples in this batch
@@ -327,6 +336,9 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
 
         if counter % 50 == 0:
             print(counter)
+
+    if losses is not None:
+        losses.append(sum(loss_this_batch) / len(loss_this_batch))
 
     # Compute f1 scores (separate method?)
     precision = [0, 0, 0]

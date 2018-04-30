@@ -16,11 +16,11 @@ NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
 epochs = 20
 EMBEDDING_DIM = 50
-HIDDEN_DIM = 3 * EMBEDDING_DIM
+HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
-DROPOUT_RATE = 0.2
-using_GPU = True
+DROPOUT_RATE = 0.5
+using_GPU = False
 ERROR_ANALYSIS = False
 
 # Decaying learning rate over time
@@ -31,7 +31,7 @@ class Model(nn.Module):
                  hidden_dim, word_embeddings, num_polarities, batch_size,
                  dropout_rate):
         super(Model, self).__init__()
-        # self.dropout = nn.Dropout(dropout_rate)
+        self.dropout = nn.Dropout(dropout_rate)
 
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
@@ -63,6 +63,7 @@ class Model(nn.Module):
 
         # [word embeddings, feature embeddings]
         lstm_input = torch.cat((word_embeds_vec, feature_embeds_vec, ht_embeds_vec), 2)
+        lstm_input = self.dropout(lstm_input)
         # print(lstm_input.size())
 #        total_length = lstm_input.size(1)  # get the max sequence length
 
@@ -132,6 +133,10 @@ def train(Xtrain, Xdev, Xtest,
         plotter.graph_attention(model, word_to_ix, ix_to_word, batch, using_GPU)
         break
     '''
+    loss_function = nn.NLLLoss(weight=torch.FloatTensor([2.7, 0.01, 1]).cuda())
+    train_losses_epoch = []
+    dev_losses_epoch = []
+
     print("evaluating training...")
     train_score, train_acc, train_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtrain, using_GPU)
     print("train f1 scores = " + str(train_score))
@@ -150,11 +155,8 @@ def train(Xtrain, Xdev, Xtest,
     test_res.append(test_score)
     test_accs.append(test_acc)
 
-    loss_function = nn.NLLLoss(weight=torch.FloatTensor([2.7, 0.1, 1]).cuda())
-    losses_epoch = []
-
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, weight_decay=0)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, weight_decay=0.0001)
 
     for epoch in range(0, epochs):
         losses = []
@@ -182,7 +184,6 @@ def train(Xtrain, Xdev, Xtest,
                 print("    " + str(i))
             i += 1
         print("loss = " + str((sum(losses) / len(losses))))
-        losses_epoch.append(float(sum(losses)) / float(len(losses)))
         # Apply decay
         if (epoch % 10 == 0):
             for param_group in optimizer.param_groups:
@@ -199,7 +200,10 @@ def train(Xtrain, Xdev, Xtest,
         print("train f1 scores = " + str(train_score))
         print(train_wrongs)
         print(Xdev)
-        dev_score, dev_acc, dev_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xdev, using_GPU)
+        dev_score, dev_acc, dev_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xdev, using_GPU,
+                                                  losses=dev_losses_epoch, loss_fxn=loss_function)
+        train_losses_epoch.append(float(sum(losses)) / float(len(losses)))
+        print("dev loss = " + str(dev_losses_epoch[len(dev_losses_epoch) - 1]))
         print("dev f1 scores = " + str(dev_score))
         print(dev_wrongs)
         train_res.append(train_score)
@@ -216,7 +220,9 @@ def train(Xtrain, Xdev, Xtest,
         test_res.append(test_score)
         test_accs.append(test_acc)
 
-    return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, losses_epoch, best_epoch, wrongs_to_ret
+    print("dev losses:")
+    print(dev_losses_epoch)
+    return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, train_losses_epoch, best_epoch, wrongs_to_ret
 
 
 def decode(word_indices, ix_to_word):
@@ -224,7 +230,8 @@ def decode(word_indices, ix_to_word):
     return words
 
 
-def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_analysis=ERROR_ANALYSIS):
+def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_analysis=ERROR_ANALYSIS,
+             losses=None, loss_fxn=None):
     # Set model to eval mode to turn off dropout.
     model.eval()
     wrong_docs = [[], [], []]
@@ -238,6 +245,7 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
 
     print("Iterate across : " + str(len(Xs)) + " batch(es)")
     counter = 0
+    loss_this_batch = []
     # count positive classifications in pos
     for batch in Xs:
         counter += 1
@@ -257,6 +265,9 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
             print(label.data)
         '''
         log_probs, attention = model(words, polarity, holder_target, lengths)  # log probs: batch_size x 3
+        if losses is not None:
+            loss = loss_fxn(log_probs, label)
+            loss_this_batch.append(float(loss))
         pred_label = log_probs.data.max(1)[1]
 
         # Count the number of examples in this batch
@@ -296,6 +307,9 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
 
         if counter % 50 == 0:
             print(counter)
+
+    if losses is not None:
+        losses.append(sum(loss_this_batch) / len(loss_this_batch))
 
     # Compute f1 scores (separate method?)
     precision = [0, 0, 0]
