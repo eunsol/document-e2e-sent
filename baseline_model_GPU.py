@@ -76,13 +76,14 @@ class Model(nn.Module):
 
         # Pass through lstm
         lstm_out, _ = self.lstm(lstm_input)
-        lstm_out = self.dropout(lstm_out)
 
         if lengths is not None:
             lstm_out = pad_packed_sequence(lstm_out, batch_first=True)[0]
             # print(lstm_out)
             # if you visualize the output, padding is all 0, so can unpack now and weighted padding is 0,
             # contributing 0 to weighted_lstm_out
+
+        lstm_out = self.dropout(lstm_out)
 
         dimension = 1
         # Compute and apply weights (attention) to each layer (so dim=1)

@@ -116,16 +116,13 @@ class Model(nn.Module):
 
         # Pass through lstm, encoding words
         lstm_out, _ = self.lstm(lstm_input)
-        lstm_out = self.dropout(lstm_out)
 
         # Re-apply padding
         if lengths is not None:
             lstm_out = pad_packed_sequence(lstm_out, batch_first=True)[0]
-            # print(lstm_out)
-            # if you visualize the output, padding is all 0, so can unpack now and weighted padding is 0,
-            # contributing 0 to weighted_lstm_out
 
-        # lstm_out Dimension: batch_size, sequence_len, 2 * hidden_dim (since concatenated forward w/ backward)
+        # Dimension: batch_size, sequence_len, 2 * hidden_dim (since concatenated forward w/ backward)
+        lstm_out = self.dropout(lstm_out)
 
         # Mask encoded words to isolate holders
         holder_mask = (holder_inds[:, :, 0] >= 0).long()
