@@ -27,7 +27,7 @@ def custom_post_inds(input, *args):
 
 
 def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new_annot/trainsplit_holdtarg",
-                      train_name="train.json", dev_name="dev.json", test_name="test.json"):
+                      train_name="train.json", dev_name="dev.json", test_name="test.json", has_holdtarg=False):
     """
     Reads the file with name filename
     """
@@ -40,31 +40,36 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     # HOLDER = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=tokenizer)
     # TARGET = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=tokenizer)
 
-    HOLDER_TARGET = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer)
+    if has_holdtarg:
+        HOLDER_TARGET = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer)
     H_IND = data.Field(sequential=True, use_vocab=False, batch_first=True, postprocessing=Pipeline(custom_post_inds),
                        include_lengths=True)
     T_IND = data.Field(sequential=True, use_vocab=False, batch_first=True, postprocessing=Pipeline(custom_post_inds),
                        include_lengths=True)
+    data_fields = {'token': ('text', TEXT), 'label': ('label', LABEL),
+                   #'holder': ('holder', HOLDER), 'target': ('target', TARGET),
+                   'polarity': ('polarity', POLARITY),
+                   'docid': ('docid', DOCID),
+                   'holder_index': ('holder_index', H_IND), 'target_index': ('target_index', T_IND)}
+    if has_holdtarg:
+        data_fields['holder_target'] = ('holder_target', HOLDER_TARGET)
 
     print("parsing data from file")
+
     train, val, test = data.TabularDataset.splits(
         path=filepath, train=train_name,
         validation=dev_name, test=test_name,
         format='json',
-        fields={'token': ('text', TEXT), 'label': ('label', LABEL),
-                #'holder': ('holder', HOLDER), 'target': ('target', TARGET),
-                'polarity': ('polarity', POLARITY),
-                # 'holder_target': ('holder_target', HOLDER_TARGET),
-                'docid': ('docid', DOCID),
-                'holder_index': ('holder_index', H_IND), 'target_index': ('target_index', T_IND)}
+        fields=data_fields
     )
 
     print("loading word embeddings")
     TEXT.build_vocab(train, val, test, vectors="glove.6B." + str(embedding_dim) + "d")
     POLARITY.build_vocab(train, val, test)
     print(POLARITY.vocab.stoi)
-    HOLDER_TARGET.build_vocab(train, val, test)
-    print(HOLDER_TARGET.vocab.stoi)
+    if has_holdtarg:
+        HOLDER_TARGET.build_vocab(train, val, test)
+        print(HOLDER_TARGET.vocab.stoi)
     DOCID.build_vocab(train, val, test)
 
     print("Train length = " + str(len(train.examples)))

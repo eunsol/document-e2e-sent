@@ -19,9 +19,9 @@ EMBEDDING_DIM = 50
 HIDDEN_DIM = 3 * EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
-DROPOUT_RATE = 0.5
-using_GPU = False
-ERROR_ANALYSIS = True
+DROPOUT_RATE = 0.2
+using_GPU = True
+ERROR_ANALYSIS = False
 
 # Decaying learning rate over time
 # Run on GPU
@@ -150,11 +150,11 @@ def train(Xtrain, Xdev, Xtest,
     test_res.append(test_score)
     test_accs.append(test_acc)
 
-    loss_function = nn.NLLLoss()
+    loss_function = nn.NLLLoss(weight=torch.FloatTensor([2.7, 0.1, 1]).cuda())
     losses_epoch = []
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01, weight_decay=0)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, weight_decay=0)
 
     for epoch in range(0, epochs):
         losses = []
@@ -294,7 +294,7 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
         assert sum(total_pred) == num_examples
         assert sum(total_correct) == num_correct
 
-        if counter % 10 == 0:
+        if counter % 50 == 0:
             print(counter)
 
     # Compute f1 scores (separate method?)
@@ -328,7 +328,12 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
 
 
 def main():
-    train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU)
+    train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
+                                                                            filepath='./data/new_annot/polarity_label_holdtarg',
+                                                                            train_name='acl_dev_tune_new.json',
+                                                                            dev_name='acl_dev_eval_new.json',
+                                                                            test_name='acl_test_new.json',
+                                                                            has_holdtarg=True)
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos

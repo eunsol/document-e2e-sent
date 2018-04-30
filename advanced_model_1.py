@@ -23,7 +23,7 @@ HIDDEN_DIM = 2 * EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
-using_GPU = False
+using_GPU = True
 
 
 def logsumexp(inputs, dim=None, keepdim=False):
@@ -202,11 +202,11 @@ def train(Xtrain, Xdev, Xtest,
     test_res.append(test_score)
     test_accs.append(test_acc)
 
-    loss_function = nn.NLLLoss()
+    loss_function = nn.NLLLoss(weight=torch.FloatTensor([2.7, 0.1, 1]).cuda())
     losses_epoch = []
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0001, weight_decay=0)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=10e-4, weight_decay=0)
 
     for epoch in range(0, epochs):
         losses = []
@@ -360,7 +360,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU):
 def main():
     train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
                                                                             filepath='./data/new_annot/polarity_label',
-                                                                            train_name='train_combined.json',
+                                                                            train_name='acl_dev_tune_new.json',
                                                                             dev_name='acl_dev_eval_new.json',
                                                                             test_name='acl_test_new.json')
 
