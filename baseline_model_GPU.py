@@ -19,7 +19,7 @@ EMBEDDING_DIM = 50
 HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
-DROPOUT_RATE = 0.5
+DROPOUT_RATE = 0.2
 using_GPU = False
 ERROR_ANALYSIS = False
 
@@ -45,7 +45,7 @@ class Model(nn.Module):
 
         # The LSTM takes [word embeddings, feature embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(3 * embeddings_size, hidden_dim, dropout=dropout_rate, batch_first=True, bidirectional=True)
+        self.lstm = nn.LSTM(3 * embeddings_size, hidden_dim, batch_first=True, bidirectional=True)
 
         # The linear layer that maps from hidden state space to target space
         self.hidden2label = nn.Linear(2 * hidden_dim, num_labels)
@@ -76,6 +76,7 @@ class Model(nn.Module):
 
         # Pass through lstm
         lstm_out, _ = self.lstm(lstm_input)
+        lstm_out = self.dropout(lstm_out)
 
         if lengths is not None:
             lstm_out = pad_packed_sequence(lstm_out, batch_first=True)[0]
@@ -133,7 +134,10 @@ def train(Xtrain, Xdev, Xtest,
         plotter.graph_attention(model, word_to_ix, ix_to_word, batch, using_GPU)
         break
     '''
-    loss_function = nn.NLLLoss(weight=torch.FloatTensor([2.7, 0.01, 1]).cuda())
+    weights = torch.FloatTensor([2.7, 0.01, 1])
+    if using_GPU:
+        weights = weights.cuda()
+    loss_function = nn.NLLLoss(weight=weights)
     train_losses_epoch = []
     dev_losses_epoch = []
 

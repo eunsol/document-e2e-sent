@@ -23,7 +23,7 @@ HIDDEN_DIM = 2 * EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
-using_GPU = True
+using_GPU = False
 
 
 def logsumexp(inputs, dim=None, keepdim=False):
@@ -68,7 +68,7 @@ class Model(nn.Module):
 
         # The LSTM takes [word embeddings, feature embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(2 * embeddings_size, hidden_dim, dropout=dropout_rate, batch_first=True, bidirectional=True)
+        self.lstm = nn.LSTM(2 * embeddings_size, hidden_dim, batch_first=True, bidirectional=True)
 
         # The linear layer that maps from hidden state space to target space
         self.hidden2label = nn.Linear(2 * hidden_dim, num_labels)
@@ -116,6 +116,7 @@ class Model(nn.Module):
 
         # Pass through lstm, encoding words
         lstm_out, _ = self.lstm(lstm_input)
+        lstm_out = self.dropout(lstm_out)
 
         # Re-apply padding
         if lengths is not None:
@@ -128,17 +129,18 @@ class Model(nn.Module):
 
         # Mask encoded words to isolate holders
         holder_mask = (holder_inds[:, :, 0] >= 0).long()
-        # concatenated [start token, end token] across hidden dimension
-        # Dimension: batch_size, 2 * (2 * hidden_dim)
+        # holders = concatenated [start token, end token] across hidden dimension
+        # Dimension: batch_size, # of holder mentions, 2 * (2 * hidden_dim)
         holders = self._endpoint_span_extractor(lstm_out, holder_inds, span_indices_mask=holder_mask)
+        print(holders)
 
         # Mask encoded words to isolate targets
         target_mask = (target_inds[:, :, 0] >= 0).long()
-        # concatenated [start token, end token] across hidden dimension
-        # Dimension: batch_size, 2 * (2 * hidden_dim)
+        # targets = concatenated [start token, end token] across hidden dimension
+        # Dimension: batch_size, # of target mentions, 2 * (2 * hidden_dim)
         targets = self._endpoint_span_extractor(lstm_out, target_inds, span_indices_mask=target_mask)
 
-        # Compute attention for each holder and target span
+        # Compute representation for each holder and target span
         holder_reps = torch.sum(self.holder_FFNN(holders), dim=1)
         target_reps = torch.sum(self.target_FFNN(targets), dim=1)
         '''
@@ -180,7 +182,11 @@ def train(Xtrain, Xdev, Xtest,
     dev_accs = []
     test_accs = []
 
-    loss_function = nn.NLLLoss(weight=torch.FloatTensor([2.7, 0.01, 1]).cuda())
+
+    weights = torch.FloatTensor([2.7, 0.01, 1])
+    if using_GPU:
+        weights = weights.cuda()
+    loss_function = nn.NLLLoss(weight=weights)
     train_loss_epoch = []
     dev_loss_epoch = []
 
