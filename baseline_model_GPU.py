@@ -14,13 +14,13 @@ import data_processor as parser
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 20
+epochs = 100
 EMBEDDING_DIM = 50
 HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
-using_GPU = False
+using_GPU = True
 ERROR_ANALYSIS = False
 
 # Decaying learning rate over time
@@ -63,7 +63,7 @@ class Model(nn.Module):
 
         # [word embeddings, feature embeddings]
         lstm_input = torch.cat((word_embeds_vec, feature_embeds_vec, ht_embeds_vec), 2)
-        lstm_input = self.dropout(lstm_input)
+#        lstm_input = self.dropout(lstm_input)
         # print(lstm_input.size())
 #        total_length = lstm_input.size(1)  # get the max sequence length
 
@@ -135,7 +135,7 @@ def train(Xtrain, Xdev, Xtest,
         plotter.graph_attention(model, word_to_ix, ix_to_word, batch, using_GPU)
         break
     '''
-    weights = torch.FloatTensor([2.7, 0.01, 1])
+    weights = torch.FloatTensor([2.7, 0.1, 1])
     if using_GPU:
         weights = weights.cuda()
     loss_function = nn.NLLLoss(weight=weights)
@@ -161,7 +161,7 @@ def train(Xtrain, Xdev, Xtest,
     test_accs.append(test_acc)
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, weight_decay=0.0001)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, weight_decay=0.01)
 
     for epoch in range(0, epochs):
         losses = []

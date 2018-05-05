@@ -23,8 +23,7 @@ HIDDEN_DIM = 2 * EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
-using_GPU = False
-
+using_GPU = True
 
 def logsumexp(inputs, dim=None, keepdim=False):
     """Numerically stable logsumexp.
@@ -55,7 +54,7 @@ class Model(nn.Module):
                  hidden_dim, word_embeddings, num_polarities, batch_size,
                  dropout_rate):
         super(Model, self).__init__()
-        # self.dropout = nn.Dropout(dropout_rate)
+        self.dropout = nn.Dropout(dropout_rate)
 
         self.hidden_dim = hidden_dim
         self.batch_size = batch_size
@@ -129,7 +128,6 @@ class Model(nn.Module):
         # holders = concatenated [start token, end token] across hidden dimension
         # Dimension: batch_size, # of holder mentions, 2 * (2 * hidden_dim)
         holders = self._endpoint_span_extractor(lstm_out, holder_inds, span_indices_mask=holder_mask)
-        print(holders)
 
         # Mask encoded words to isolate targets
         target_mask = (target_inds[:, :, 0] >= 0).long()
@@ -138,8 +136,8 @@ class Model(nn.Module):
         targets = self._endpoint_span_extractor(lstm_out, target_inds, span_indices_mask=target_mask)
 
         # Compute representation for each holder and target span
-        holder_reps = torch.sum(self.holder_FFNN(holders), dim=1)
-        target_reps = torch.sum(self.target_FFNN(targets), dim=1)
+        holder_reps = torch.mean(self.holder_FFNN(holders), dim=1)
+        target_reps = torch.mean(self.target_FFNN(targets), dim=1)
         '''
         holder_alphas = self.holder_attention(holders)
         holder_alphas = F.softmax(holder_alphas, dim=1)  # batch_size x seq_len x 1
