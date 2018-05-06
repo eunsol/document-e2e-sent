@@ -24,39 +24,40 @@ with open("./resources/subjclueslen1-HLTEMNLP05.tff", 'r') as f:
 
 
 all_data = []
-filename = ".json"
-with open("./data/new_annot/none/" + filename, "r", encoding="latin1") as af:
-    for line in af:
-        annot = json.loads(line)
-        polarity = []
-        for token in annot["token"]:
-            if token in word_to_polarity.keys():
-                polarity.append(word_to_polarity[token])
-            else:
-                polarity.append("<unk>")
-        annot["polarity"] = polarity
-        all_data.append(annot)
+filenames = ["E_train.json", "F_train.json", "G_train.json", "H_train.json"]
+for filename in filenames:
+    print(filename)
+    with open("./data/new_annot/none/" + filename, "r", encoding="latin1") as af:
+        for line in af:
+            annot = json.loads(line)
+            polarity = []
+            for token in annot["token"]:
+                if token in word_to_polarity.keys():
+                    polarity.append(word_to_polarity[token])
+                else:
+                    polarity.append("<unk>")
+            annot["polarity"] = polarity
+            all_data.append(annot)
 
-with open("./data/new_annot/polarity/" + filename, "w", encoding="latin1") as wf:
-    for line in all_data:
-        json.dump(line, wf)
-        wf.write('\n')
-
-print("evaluating validity...")
-# testing
-with open("./data/new_annot/polarity/" + filename, "r", encoding="latin1") as af:
-    for line in af:
-        annot = json.loads(line)
-        polarities = annot["polarity"]
-        tokens = annot["token"]
-        if len(polarities) != len(tokens):
-            print("length problem: " + str(annot))
-        for i in range(0, len(polarities)):
-            if polarities[i] == "<unk>":
-                if tokens[i] in word_to_polarity.keys():
-                    print("something not labelled")
-            else:
-                if word_to_polarity[tokens[i]] != polarities[i]:
-                    print("wrong token")
-
-
+    with open("./data/new_annot/polarity/" + filename, "w", encoding="latin1") as wf:
+        for line in all_data:
+            json.dump(line, wf)
+            wf.write('\n')
+    '''
+	print("evaluating validity...")
+	# testing
+	with open("./data/new_annot/polarity/" + filename, "r", encoding="latin1") as af:
+	    for line in af:
+		annot = json.loads(line)
+		polarities = annot["polarity"]
+		tokens = annot["token"]
+		if len(polarities) != len(tokens):
+		    print("length problem: " + str(annot))
+		for i in range(0, len(polarities)):
+		    if polarities[i] == "<unk>":
+			if tokens[i] in word_to_polarity.keys():
+			    print("something not labelled")
+		    else:
+			if word_to_polarity[tokens[i]] != polarities[i]:
+			    print("wrong token")
+    '''
