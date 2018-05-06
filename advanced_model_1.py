@@ -25,6 +25,21 @@ BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
 using_GPU = True
 
+set_name = "D"
+datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([0.8, 1.825, 1])},
+            "B": {"filepath": "./data/new_annot/trainsplit_holdtarg",
+                  "filenames": ["train.json", "dev.json", "test.json"],
+                  "weights": torch.FloatTensor([0.8, 1.766, 1])},
+            "C": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.07, 1.26])},
+            "D": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["acl_dev_tune_new.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([2.7, 0.1, 1])},
+            }
+
 def logsumexp(inputs, dim=None, keepdim=False):
     """Numerically stable logsumexp.
 
@@ -178,7 +193,7 @@ def train(Xtrain, Xdev, Xtest,
     test_accs = []
 
 
-    weights = torch.FloatTensor([2.7, 0.01, 1])
+    weights = datasets[set_name]["weights"]
     if using_GPU:
         weights = weights.cuda()
     loss_function = nn.NLLLoss(weight=weights)
@@ -372,10 +387,11 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
 
 def main():
     train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
-                                                                            filepath='./data/new_annot/polarity_label',
-                                                                            train_name='acl_dev_tune_new.json',
-                                                                            dev_name='acl_dev_eval_new.json',
-                                                                            test_name='acl_test_new.json')
+                                                                            filepath=datasets[set_name]["filepath"],
+                                                                            train_name=datasets[set_name]["filenames"][0],
+                                                                            dev_name=datasets[set_name]["filenames"][1],
+                                                                            test_name=datasets[set_name]["filenames"][2],
+                                                                            has_holdtarg=True)
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos

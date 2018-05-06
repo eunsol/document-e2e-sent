@@ -20,8 +20,24 @@ HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
-using_GPU = True
+using_GPU = False
 ERROR_ANALYSIS = False
+
+set_name = "D"
+datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([0.8, 1.825, 1])},
+            "B": {"filepath": "./data/new_annot/trainsplit_holdtarg",
+                  "filenames": ["train.json", "dev.json", "test.json"],
+                  "weights": torch.FloatTensor([0.8, 1.766, 1])},
+            "C": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.07, 1.26])},
+            "D": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["acl_dev_tune_new.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([2.7, 0.1, 1])},
+            }
+
 
 # Decaying learning rate over time
 # Run on GPU
@@ -135,12 +151,27 @@ def train(Xtrain, Xdev, Xtest,
         plotter.graph_attention(model, word_to_ix, ix_to_word, batch, using_GPU)
         break
     '''
-    weights = torch.FloatTensor([2.7, 0.1, 1])
+    weights = datasets[set_name]["weights"]
     if using_GPU:
         weights = weights.cuda()
     loss_function = nn.NLLLoss(weight=weights)
     train_losses_epoch = []
     dev_losses_epoch = []
+
+    '''
+    num_grad_params = 0
+    all_params = 0
+    for name, param in model.named_parameters():
+        all_params += 1
+        if param.requires_grad:
+            num_grad_params += 1
+            print(name, type(param.data), param.size())
+        else:
+            print("this")
+            print(name, type(param.data), param.size())
+    print(num_grad_params)
+    print(all_params)
+    '''
 
     print("evaluating training...")
     train_score, train_acc, train_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtrain, using_GPU)
@@ -154,7 +185,7 @@ def train(Xtrain, Xdev, Xtest,
     wrongs_to_ret = [train_wrongs, dev_wrongs]
     train_accs.append(train_acc)
     dev_accs.append(dev_acc)
-    
+
     test_score, test_acc, test_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtest, using_GPU,
                                                  error_analysis=False)
     test_res.append(test_score)
@@ -348,10 +379,10 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
 
 def main():
     train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
-                                                                            filepath='./data/new_annot/polarity_label_holdtarg',
-                                                                            train_name='acl_dev_tune_new.json',
-                                                                            dev_name='acl_dev_eval_new.json',
-                                                                            test_name='acl_test_new.json',
+                                                                            filepath=datasets[set_name]["filepath"],
+                                                                            train_name=datasets[set_name]["filenames"][0],
+                                                                            dev_name=datasets[set_name]["filenames"][1],
+                                                                            test_name=datasets[set_name]["filenames"][2],
                                                                             has_holdtarg=True)
 
     word_to_ix = TEXT.vocab.stoi
