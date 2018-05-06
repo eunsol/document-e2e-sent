@@ -61,7 +61,8 @@ class Model(nn.Module):
 
         # The LSTM takes [word embeddings, feature embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(3 * embeddings_size, hidden_dim, batch_first=True, bidirectional=True)
+        self.lstm = nn.LSTM(3 * embeddings_size, hidden_dim, num_layers=2,
+                            batch_first=True, bidirectional=True, dropout=dropout_rate)
 
         # The linear layer that maps from hidden state space to target space
         self.hidden2label = nn.Linear(2 * hidden_dim, num_labels)
@@ -99,7 +100,7 @@ class Model(nn.Module):
             # if you visualize the output, padding is all 0, so can unpack now and weighted padding is 0,
             # contributing 0 to weighted_lstm_out
 
-        lstm_out = self.dropout(lstm_out)
+#        lstm_out = self.dropout(lstm_out)
 
         dimension = 1
         # Compute and apply weights (attention) to each layer (so dim=1)
@@ -192,7 +193,7 @@ def train(Xtrain, Xdev, Xtest,
     test_accs.append(test_acc)
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, weight_decay=0.01)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001)
 
     for epoch in range(0, epochs):
         losses = []

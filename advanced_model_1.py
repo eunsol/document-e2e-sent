@@ -82,7 +82,8 @@ class Model(nn.Module):
 
         # The LSTM takes [word embeddings, feature embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(2 * embeddings_size, hidden_dim, batch_first=True, bidirectional=True)
+        self.lstm = nn.LSTM(2 * embeddings_size, hidden_dim, num_layers=2,
+                            batch_first=True, bidirectional=True, dropout=dropout_rate)
 
         # The linear layer that maps from hidden state space to target space
         self.hidden2label = nn.Linear(2 * hidden_dim, num_labels)
