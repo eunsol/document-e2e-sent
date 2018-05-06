@@ -23,7 +23,7 @@ DROPOUT_RATE = 0.2
 using_GPU = True
 ERROR_ANALYSIS = False
 
-set_name = "C"
+set_name = "B"
 datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1])},
@@ -397,6 +397,8 @@ def main():
     model = Model(NUM_LABELS, VOCAB_SIZE,
                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
+    print(model.state_dict())
+    model.load_state_dict(torch.load("./model_states/baseline.pt"))
 
     # Move the model to the GPU if available
     if using_GPU:
@@ -407,6 +409,7 @@ def main():
                                    model,
                                    word_to_ix, ix_to_word, ix_to_docid,
                                    using_GPU)
+
     print("Train results: ")
     print("    " + str(train_c))
     print("    " + str(train_a))
@@ -432,7 +435,9 @@ def main():
 
     print("Wrongs")
     print(wrongs)
- 
+
+    print("saving model...")
+    torch.save(model.state_dict(), "./model_states")
     '''                   
     print(str(dev_c))
     best_epochs = np.argmax(np.array(dev_c))
