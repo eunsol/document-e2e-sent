@@ -18,12 +18,12 @@ epochs = 20
 EMBEDDING_DIM = 50
 HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
-BATCH_SIZE = 50
+BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
 using_GPU = True
 ERROR_ANALYSIS = False
 
-set_name = "B"
+set_name = "E"
 datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1])},
@@ -36,8 +36,19 @@ datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
             "D": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["acl_dev_tune_new.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([2.7, 0.1, 1])},
-            }
-
+            "E": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["E_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.3523, 1.0055])},
+            "F": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.054569, 1.0055])},
+            "G": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["G_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1.823, 0.0699, 1.0055])},
+            "H": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["H_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.054566, 1.0055])},
+           }
 
 # Decaying learning rate over time
 # Run on GPU
@@ -366,7 +377,8 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
     # Compute accuracy
     accuracy = num_correct / float(num_examples)
     print(accuracy)
-
+    print("precision: " + str(precision))
+    print("recall: " + str(recall))
     print(f1)
 #    score = f1_score(list(predictions), list(truths), labels=[0, 1, 2], average=None)
 #    print(score)
@@ -437,7 +449,7 @@ def main():
     print(wrongs)
 
     print("saving model...")
-    torch.save(model.state_dict(), "./model_states")
+    torch.save(model.state_dict(), "./model_states/baseline.pt")
     '''                   
     print(str(dev_c))
     best_epochs = np.argmax(np.array(dev_c))

@@ -25,7 +25,7 @@ BATCH_SIZE = 50
 DROPOUT_RATE = 0.2
 using_GPU = True
 
-set_name = "C"
+set_name = "E"
 datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1])},
@@ -38,7 +38,13 @@ datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
             "D": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["acl_dev_tune_new.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([2.7, 0.1, 1])},
-            }
+            "E": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["E_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.3523, 1.0055])},
+            "H": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["H_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.054566, 1.0055])},
+           }
 
 def logsumexp(inputs, dim=None, keepdim=False):
     """Numerically stable logsumexp.
