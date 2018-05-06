@@ -21,17 +21,17 @@ epochs = 20
 EMBEDDING_DIM = 50
 HIDDEN_DIM = 2 * EMBEDDING_DIM
 NUM_POLARITIES = 6
-BATCH_SIZE = 10
+BATCH_SIZE = 50
 DROPOUT_RATE = 0.2
 using_GPU = True
 
-set_name = "D"
+set_name = "C"
 datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1])},
             "B": {"filepath": "./data/new_annot/trainsplit_holdtarg",
                   "filenames": ["train.json", "dev.json", "test.json"],
-                  "weights": torch.FloatTensor([0.8, 1.766, 1])},
+                  "weights": torch.FloatTensor([0.77, 1.766, 1])},
             "C": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.07, 1.26])},
@@ -224,7 +224,7 @@ def train(Xtrain, Xdev, Xtest,
     test_accs.append(test_acc)
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=10e-4, weight_decay=0)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=0)
 
     for epoch in range(0, epochs):
         losses = []
@@ -287,6 +287,8 @@ def train(Xtrain, Xdev, Xtest,
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
+    print("dev losses:")
+    print(dev_loss_epoch)
     return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, train_loss_epoch, best_epoch
 
 

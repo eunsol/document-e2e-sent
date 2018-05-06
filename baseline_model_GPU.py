@@ -14,22 +14,22 @@ import data_processor as parser
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 100
+epochs = 20
 EMBEDDING_DIM = 50
 HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
-BATCH_SIZE = 10
+BATCH_SIZE = 50
 DROPOUT_RATE = 0.2
-using_GPU = False
+using_GPU = True
 ERROR_ANALYSIS = False
 
-set_name = "D"
+set_name = "C"
 datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1])},
             "B": {"filepath": "./data/new_annot/trainsplit_holdtarg",
                   "filenames": ["train.json", "dev.json", "test.json"],
-                  "weights": torch.FloatTensor([0.8, 1.766, 1])},
+                  "weights": torch.FloatTensor([0.77, 1.766, 1])},
             "C": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.07, 1.26])},
