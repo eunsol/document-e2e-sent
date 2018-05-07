@@ -23,9 +23,12 @@ HIDDEN_DIM = 2 * EMBEDDING_DIM
 NUM_POLARITIES = 6
 DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
+threshold = torch.log(torch.FloatTensor([0.5, 0.2, 0.5]))
+if using_GPU:
+    threshold = threshold.cuda()
 
-set_name = "E"
-datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+set_name = "A"
+datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
                   "batch": 10},
@@ -33,27 +36,27 @@ datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["train.json", "dev.json", "test.json"],
                   "weights": torch.FloatTensor([0.77, 1.766, 1]),
                   "batch": 10},
-            "C": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+            "C": {"filepath": "./data/new_annot/feature",
                   "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.07, 1.26]),
                   "batch": 50},
-            "D": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+            "D": {"filepath": "./data/new_annot/feature",
                   "filenames": ["acl_dev_tune_new.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([2.7, 0.1, 1]),
                   "batch": 10},
-            "E": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+            "E": {"filepath": "./data/new_annot/feature",
                   "filenames": ["E_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.3523, 1.0055]),
                   "batch": 25},
-            "F": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+            "F": {"filepath": "./data/new_annot/feature",
                   "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
                   "batch": 100},
-            "G": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+            "G": {"filepath": "./data/new_annot/feature",
                   "filenames": ["G_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1.823, 0.0699, 1.0055]),
                   "batch": 100},
-            "H": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+            "H": {"filepath": "./data/new_annot/feature",
                   "filenames": ["H_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.054566, 1.0055]),
                   "batch": 250},
@@ -123,13 +126,13 @@ class Model(nn.Module):
         self._attentive_span_extractor = SelfAttentiveSpanExtractor(input_dim=2*hidden_dim)
 
         # FFNN for holder/target spans respectively
-        self.holder_FFNN = FeedForward(input_dim=3*2*hidden_dim, num_layers=2, hidden_dims=[2*hidden_dim, 2*hidden_dim],
+        self.holder_FFNN = FeedForward(input_dim=3*2*hidden_dim, num_layers=2, hidden_dims=[hidden_dim, hidden_dim],
                                        activations=nn.ReLU())
-        self.target_FFNN = FeedForward(input_dim=3*2*hidden_dim, num_layers=2, hidden_dims=[2*hidden_dim, 2*hidden_dim],
+        self.target_FFNN = FeedForward(input_dim=3*2*hidden_dim, num_layers=2, hidden_dims=[hidden_dim, hidden_dim],
                                        activations=nn.ReLU())
 
-        # Scoring pairwise sentiment: bilinear approach
-        self.pairwise_sentiment_score = nn.Bilinear(2*hidden_dim, 2*hidden_dim, out_features=num_labels)
+        # Scoring pairwise sentiment: linear score approach
+        self.pairwise_sentiment_score = nn.Linear(2*hidden_dim, out_features=num_labels)
 
     def forward(self, word_vec, feature_vec, lengths=None,
                 holder_inds=None, target_inds=None, holder_lengths=None, target_lengths=None):
@@ -181,6 +184,7 @@ class Model(nn.Module):
         targets = torch.cat([endpoint_target, attended_target], -1)
 
         # Compute representation for each holder and target span
+        # Shape: (batch_size, # of target mentions, hidden_dim))
         holder_reps = torch.mean(self.holder_FFNN(holders), dim=1)
         target_reps = torch.mean(self.target_FFNN(targets), dim=1)
         '''
@@ -194,7 +198,8 @@ class Model(nn.Module):
         '''
 
         # Get final pairwise score, passing in holder and target representations
-        output = self.pairwise_sentiment_score(holder_reps, target_reps)
+        # shape: (batch_size, 1, 2 * hidden_dim)
+        output = self.pairwise_sentiment_score(torch.cat([holder_reps, target_reps], dim=-1))
         '''
         dimension = 1
         # Compute and apply weights (attention) to each layer (so dim=1)
@@ -362,7 +367,18 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
         if losses is not None:
             loss = loss_fxn(log_probs, label)
             loss_this_batch.append(float(loss))
-        pred_label = log_probs.data.max(1)[1]
+
+        pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
+        '''
+        if using_GPU:
+            pred_label = pred_label.cuda()
+        print(log_probs[:, 0] > threshold[0])
+        # predict 0 if index at 0 > 0.5
+        pred_label[log_probs[:, 0] > threshold[0]] = 2
+        # predict 2 if index at 2 > 0.5
+        pred_label[log_probs[:, 2] > threshold[2]] = 0
+        pred_label = pred_label.data
+        '''
 
         # Count the number of examples in this batch
         for i in range(0, NUM_LABELS):
