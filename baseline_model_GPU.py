@@ -18,7 +18,6 @@ epochs = 20
 EMBEDDING_DIM = 50
 HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
-BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
 ERROR_ANALYSIS = False
@@ -57,6 +56,8 @@ datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "weights": torch.FloatTensor([1, 0.054566, 1.0055]),
                   "batch": 250},
            }
+
+BATCH_SIZE = datasets[set_name]["batch"]
 
 # Decaying learning rate over time
 # Run on GPU
@@ -417,7 +418,7 @@ def main():
     model = Model(NUM_LABELS, VOCAB_SIZE,
                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
-    model.load_state_dict(torch.load("./model_states/baseline.pt"))
+#    model.load_state_dict(torch.load("./model_states/baseline.pt"))
 
     # Move the model to the GPU if available
     if using_GPU:
@@ -456,7 +457,7 @@ def main():
     print(wrongs)
 
     print("saving model...")
-    torch.save(model.state_dict(), "./model_states/baseline.pt")
+    torch.save(model.state_dict(), "./model_states/baseline_E_20.pt")
     '''                   
     print(str(dev_c))
     best_epochs = np.argmax(np.array(dev_c))

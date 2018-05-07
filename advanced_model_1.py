@@ -24,7 +24,7 @@ NUM_POLARITIES = 6
 DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
 
-set_name = "A"
+set_name = "E"
 datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -406,7 +406,9 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
     # Compute accuracy
     accuracy = num_correct / float(num_examples)
     print(accuracy)
-
+    print("precision: " + str(precision))
+    print("recall: " + str(recall))
+ 
     print(f1)
     #    score = f1_score(list(predictions), list(truths), labels=[0, 1, 2], average=None)
     #    print(score)
@@ -435,6 +437,9 @@ def main():
     model = Model(NUM_LABELS, VOCAB_SIZE,
                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
+
+    print("num params = ")
+    print(len(model.state_dict()))
 
     # Move the model to the GPU if available
     if using_GPU:
@@ -468,6 +473,9 @@ def main():
     print("    " + str(test_c[best_epoch]) + " " + str(sum(test_c[best_epoch]) / len(test_c[best_epoch])))
     print("    " + str(test_a[best_epoch]))
 
+    print("saving model...")
+    torch.save(model.state_dict(), "./model_states/adv_E_20.pt")
+ 
     '''                   
     print(str(dev_c))
     best_epochs = np.argmax(np.array(dev_c))
