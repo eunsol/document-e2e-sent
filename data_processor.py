@@ -50,11 +50,15 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
                        include_lengths=True)
     T_IND = data.Field(sequential=True, use_vocab=False, batch_first=True, postprocessing=Pipeline(custom_post_inds),
                        include_lengths=True)
+
+    CO_OCCURRENCES = data.Field(sequential=False, use_vocab=False, batch_first=True)
+
     data_fields = {'token': ('text', TEXT), 'label': ('label', LABEL),
                    #'holder': ('holder', HOLDER), 'target': ('target', TARGET),
                    'polarity': ('polarity', POLARITY),
                    'docid': ('docid', DOCID),
-                   'holder_index': ('holder_index', H_IND), 'target_index': ('target_index', T_IND)}
+                   'holder_index': ('holder_index', H_IND), 'target_index': ('target_index', T_IND),
+                   'co_occurrences': ('co_occurrences', CO_OCCURRENCES)}
     if has_holdtarg:
         data_fields['holder_target'] = ('holder_target', HOLDER_TARGET)
 
