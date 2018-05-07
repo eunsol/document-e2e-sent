@@ -31,6 +31,10 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     """
     Reads the file with name filename
     """
+    if using_GPU:
+        torch.cuda.device(0)
+        print("Running on device " + str(torch.cuda.current_device()))
+
     print("creating fields")
     TEXT = data.Field(sequential=True, use_vocab=True, batch_first=True, tokenize=dummy_tokenizer, include_lengths=True)
     LABEL = data.Field(sequential=False, use_vocab=False, batch_first=True)
@@ -76,10 +80,6 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     print("Dev length = " + str(len(val.examples)))
     print("Test length = " + str(len(test.examples)))
     #print(val.examples[0].text)
-  
-    device_usage = -1
-    if using_GPU:
-        device_usage = 0
 
     validation_batch = min(len(val.examples), 1000)
     test_batch = min(len(test.examples), 1000)
@@ -89,7 +89,6 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
         (train, val, test), sort_key=lambda x: len(x.text),
         repeat=False,
         batch_sizes=(batch_size, validation_batch, test_batch),
-        device=device_usage,
         sort_within_batch=True)
 
     print("Repeat = " + str(train_iter.repeat))

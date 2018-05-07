@@ -20,34 +20,42 @@ HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
 BATCH_SIZE = 10
 DROPOUT_RATE = 0.2
-using_GPU = True
+using_GPU = torch.cuda.is_available()
 ERROR_ANALYSIS = False
 
 set_name = "E"
 datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([0.8, 1.825, 1])},
+                  "weights": torch.FloatTensor([0.8, 1.825, 1]),
+                  "batch": 10},
             "B": {"filepath": "./data/new_annot/trainsplit_holdtarg",
                   "filenames": ["train.json", "dev.json", "test.json"],
-                  "weights": torch.FloatTensor([0.77, 1.766, 1])},
+                  "weights": torch.FloatTensor([0.77, 1.766, 1]),
+                  "batch": 10},
             "C": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.07, 1.26])},
+                  "weights": torch.FloatTensor([1, 0.07, 1.26]),
+                  "batch": 50},
             "D": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["acl_dev_tune_new.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([2.7, 0.1, 1])},
+                  "weights": torch.FloatTensor([2.7, 0.1, 1]),
+                  "batch": 10},
             "E": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["E_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.3523, 1.0055])},
+                  "weights": torch.FloatTensor([1, 0.3523, 1.0055]),
+                  "batch": 25},
             "F": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.054569, 1.0055])},
+                  "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
+                  "batch": 100},
             "G": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["G_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1.823, 0.0699, 1.0055])},
+                  "weights": torch.FloatTensor([1.823, 0.0699, 1.0055]),
+                  "batch": 100},
             "H": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["H_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.054566, 1.0055])},
+                  "weights": torch.FloatTensor([1, 0.054566, 1.0055]),
+                  "batch": 250},
            }
 
 # Decaying learning rate over time
@@ -409,7 +417,6 @@ def main():
     model = Model(NUM_LABELS, VOCAB_SIZE,
                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
-    print(model.state_dict())
     model.load_state_dict(torch.load("./model_states/baseline.pt"))
 
     # Move the model to the GPU if available

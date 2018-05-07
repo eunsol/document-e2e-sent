@@ -21,30 +21,45 @@ epochs = 20
 EMBEDDING_DIM = 50
 HIDDEN_DIM = 2 * EMBEDDING_DIM
 NUM_POLARITIES = 6
-BATCH_SIZE = 50
 DROPOUT_RATE = 0.2
-using_GPU = True
+using_GPU = torch.cuda.is_available()
 
-set_name = "E"
+set_name = "A"
 datasets = {"A": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([0.8, 1.825, 1])},
+                  "weights": torch.FloatTensor([0.8, 1.825, 1]),
+                  "batch": 10},
             "B": {"filepath": "./data/new_annot/trainsplit_holdtarg",
                   "filenames": ["train.json", "dev.json", "test.json"],
-                  "weights": torch.FloatTensor([0.77, 1.766, 1])},
+                  "weights": torch.FloatTensor([0.77, 1.766, 1]),
+                  "batch": 10},
             "C": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.07, 1.26])},
+                  "weights": torch.FloatTensor([1, 0.07, 1.26]),
+                  "batch": 50},
             "D": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["acl_dev_tune_new.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([2.7, 0.1, 1])},
+                  "weights": torch.FloatTensor([2.7, 0.1, 1]),
+                  "batch": 10},
             "E": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["E_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.3523, 1.0055])},
+                  "weights": torch.FloatTensor([1, 0.3523, 1.0055]),
+                  "batch": 25},
+            "F": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
+                  "batch": 100},
+            "G": {"filepath": "./data/new_annot/polarity_label_holdtarg",
+                  "filenames": ["G_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1.823, 0.0699, 1.0055]),
+                  "batch": 100},
             "H": {"filepath": "./data/new_annot/polarity_label_holdtarg",
                   "filenames": ["H_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.054566, 1.0055])},
+                  "weights": torch.FloatTensor([1, 0.054566, 1.0055]),
+                  "batch": 250},
            }
+
+BATCH_SIZE = datasets[set_name]["batch"]
 
 def logsumexp(inputs, dim=None, keepdim=False):
     """Numerically stable logsumexp.
@@ -108,9 +123,9 @@ class Model(nn.Module):
         self._attentive_span_extractor = SelfAttentiveSpanExtractor(input_dim=2*hidden_dim)
 
         # FFNN for holder/target spans respectively
-        self.holder_FFNN = FeedForward(input_dim=4*hidden_dim, num_layers=2, hidden_dims=[2*hidden_dim, 2*hidden_dim],
+        self.holder_FFNN = FeedForward(input_dim=3*2*hidden_dim, num_layers=2, hidden_dims=[2*hidden_dim, 2*hidden_dim],
                                        activations=nn.ReLU())
-        self.target_FFNN = FeedForward(input_dim=4*hidden_dim, num_layers=2, hidden_dims=[2*hidden_dim, 2*hidden_dim],
+        self.target_FFNN = FeedForward(input_dim=3*2*hidden_dim, num_layers=2, hidden_dims=[2*hidden_dim, 2*hidden_dim],
                                        activations=nn.ReLU())
 
         # Scoring pairwise sentiment: bilinear approach
@@ -148,14 +163,22 @@ class Model(nn.Module):
         # Mask encoded words to isolate holders
         holder_mask = (holder_inds[:, :, 0] >= 0).long()
         # holders = concatenated [start token, end token] across hidden dimension
-        # Dimension: batch_size, # of holder mentions, 2 * (2 * hidden_dim)
-        holders = self._endpoint_span_extractor(lstm_out, holder_inds, span_indices_mask=holder_mask)
+        # Dimension: batch_size, # of holder mentions, 2 * (2 * hidden_dim)--both endpoints
+        endpoint_holder = self._endpoint_span_extractor(lstm_out, holder_inds, span_indices_mask=holder_mask)
+        # Dimension: batch_size, # of holder mentions, 2 * hidden_dim
+        attended_holder = self._attentive_span_extractor(lstm_out, holder_inds, span_indices_mask=holder_mask)
+        # Shape: (batch_size, # of holder mentions, 3 * (2 * hidden_dim))
+        holders = torch.cat([endpoint_holder, attended_holder], -1)
 
         # Mask encoded words to isolate targets
         target_mask = (target_inds[:, :, 0] >= 0).long()
         # targets = concatenated [start token, end token] across hidden dimension
         # Dimension: batch_size, # of target mentions, 2 * (2 * hidden_dim)
-        targets = self._endpoint_span_extractor(lstm_out, target_inds, span_indices_mask=target_mask)
+        endpoint_target = self._endpoint_span_extractor(lstm_out, target_inds, span_indices_mask=target_mask)
+        # Dimension: batch_size, # of target mentions, 2 * hidden_dim
+        attended_target = self._attentive_span_extractor(lstm_out, target_inds, span_indices_mask=target_mask)
+        # Shape: (batch_size, # of target mentions, 3 * (2 * hidden_dim))
+        targets = torch.cat([endpoint_target, attended_target], -1)
 
         # Compute representation for each holder and target span
         holder_reps = torch.mean(self.holder_FFNN(holders), dim=1)
