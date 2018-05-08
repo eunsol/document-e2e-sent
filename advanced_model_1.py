@@ -196,8 +196,8 @@ class Model(nn.Module):
 
         # Compute representation for each holder and target span, taking the mean across mentions
         # Shape: (batch_size, 3 * (2 * hidden_dim))
-        holder_reps = torch.squeeze(torch.mean(holders, dim=1))
-        target_reps = torch.squeeze(torch.mean(targets, dim=1))
+        holder_reps = torch.squeeze(torch.mean(holders, dim=1), dim=1)
+        target_reps = torch.squeeze(torch.mean(targets, dim=1), dim=1)
         '''
         holder_alphas = self.holder_attention(holders)
         holder_alphas = F.softmax(holder_alphas, dim=1)  # batch_size x seq_len x 1
@@ -212,6 +212,9 @@ class Model(nn.Module):
         # Shape: (batch_size, hidden_dim)
         co_occur_feature[co_occur_feature >= 10] = 9
         co_occur_embeds_vec = self.co_occur_embeds(co_occur_feature)
+
+        print(holder_reps.size())
+        print(co_occur_embeds_vec.size())
 
         # Get final pairwise score, passing in holder and target representations
         # Shape: (batch_size, hidden_dim + 2 * (3 * (2 * hidden_dim)))
