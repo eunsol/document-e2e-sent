@@ -2,6 +2,7 @@ import torch
 import data_processor as parser
 from allennlp.modules.span_extractors import SelfAttentiveSpanExtractor, EndpointSpanExtractor
 from advanced_model_1 import Model
+import json
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
@@ -16,7 +17,7 @@ threshold = torch.log(torch.FloatTensor([0.5, 0.2, 0.5]))
 if using_GPU:
     threshold = threshold.cuda()
 
-set_name = "E"
+set_name = "F"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -66,9 +67,9 @@ def main():
                                                                             filepath=datasets[set_name]["filepath"],
                                                                             train_name=datasets[set_name]["filenames"][
                                                                                 1],
-                                                                            dev_name=datasets[set_name]["filenames"][1],
+                                                                            dev_name=datasets[set_name]["filenames"][0],
                                                                             test_name=datasets[set_name]["filenames"][
-                                                                                1],
+                                                                                2],
                                                                             has_holdtarg=True)
 
     word_to_ix = TEXT.vocab.stoi
@@ -105,28 +106,33 @@ def main():
         (targets, target_lengths) = batch.target_index
         co_occur_feature = batch.co_occurrences
         docid = batch.docid
-
-        if label[0] != 1:
-            # Step 1. Remember that Pytorch accumulates gradients.
-            # We need to clear them out before each instance
-            model.zero_grad()
-            model.batch_size = len(label.data)  # set batch size
-            # Step 3. Run our forward pass.
-            log_probs = model(words, polarity, lengths,
-                              holders, targets, holder_lengths, target_lengths,
-                              co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
+        # Step 1. Remember that Pytorch accumulates gradients.
+        # We need to clear them out before each instance
+        model.zero_grad()
+        model.batch_size = len(label.data)  # set batch size
+        # Step 3. Run our forward pass.
+        log_probs = model(words, polarity, lengths,
+                          holders, targets, holder_lengths, target_lengths,
+                          co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
+        pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
+        if pred_label != 1:
             prob = torch.exp(log_probs)
-            probs.append(prob)
-            pred_label = prob.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
-            preds.append(pred_label)
-            texts.append({"docid": docid, "holders": holders, "targets": targets})
-            acts.extend(batch.label)
+            probs.append(prob.data.cpu().numpy().tolist())
+            preds.append(float(pred_label))
+            texts.append({"docid": DOCID.vocab.itos(docid[0]), "holders": holders.data.cpu().numpy(), "targets": targets.data.cpu().numpy()})
+#            print(label.data[0])
+            acts.append(label.data[0])
+            print(texts)
         if counter % 100 == 0:
             print(counter)
 
     print(probs)
     print(preds)
     print(acts)
+    with open("wrong_docs.json", "w") as wf:
+        for line in texts:
+            json.dumps(line, wf)
+            wf.write("\n")
     print(texts)
 
 

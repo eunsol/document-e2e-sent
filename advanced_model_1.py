@@ -17,7 +17,7 @@ from allennlp.modules.span_extractors import SelfAttentiveSpanExtractor, Endpoin
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 10
+epochs = 20
 EMBEDDING_DIM = 50
 MAX_CO_OCCURS = 10
 HIDDEN_DIM = EMBEDDING_DIM
@@ -28,7 +28,7 @@ threshold = torch.log(torch.FloatTensor([0.5, 0.2, 0.5]))
 if using_GPU:
     threshold = threshold.cuda()
 
-set_name = "E"
+set_name = "F"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -212,9 +212,6 @@ class Model(nn.Module):
         # Shape: (batch_size, hidden_dim)
         co_occur_feature[co_occur_feature >= 10] = 9
         co_occur_embeds_vec = self.co_occur_embeds(co_occur_feature)
-
-        print(holder_reps.size())
-        print(co_occur_embeds_vec.size())
 
         # Get final pairwise score, passing in holder and target representations
         # Shape: (batch_size, hidden_dim + 2 * (3 * (2 * hidden_dim)))
@@ -482,7 +479,7 @@ def main():
 
     print("num params = ")
     print(len(model.state_dict()))
-    model.load_state_dict(torch.load("./model_states/adv_E_10.pt"))
+#    model.load_state_dict(torch.load("./model_states/adv_G_10.pt"))
 
     # Move the model to the GPU if available
     if using_GPU:
@@ -517,15 +514,7 @@ def main():
     print("    " + str(test_a[best_epoch]))
 
     print("saving model...")
-    torch.save(model.state_dict(), "./model_states/adv_" + set_name + "_" + str(epochs + 10) + ".pt")
- 
-    '''                   
-    print(str(dev_c))
-    best_epochs = np.argmax(np.array(dev_c))
-    dev_results = dev_c[best_epochs]
-    print("Test performance = " + str(test_c[best_epochs]))
-    '''
-
+    torch.save(model.state_dict(), "./model_states/adv_" + set_name + "_" + str(epochs) + ".pt")
 
 if __name__ == "__main__":
     main()

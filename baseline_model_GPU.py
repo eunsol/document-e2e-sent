@@ -14,7 +14,7 @@ import data_processor as parser
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 10
+epochs = 20
 EMBEDDING_DIM = 50
 HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
@@ -22,7 +22,7 @@ DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
 ERROR_ANALYSIS = False
 
-set_name = "F"
+set_name = "A"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -266,8 +266,9 @@ def train(Xtrain, Xdev, Xtest,
         train_res.append(train_score)
         train_accs.append(train_acc)
         dev_res.append(dev_score)
-        dev_f1_aves.append(sum(dev_score) / len(dev_score))
-        if (dev_f1_aves[epoch] > dev_f1_aves[best_epoch]):
+        epoch_score = (dev_score[0] + dev_score[2]) / 2
+        dev_f1_aves.append(epoch_score)
+        if (epoch_score > dev_f1_aves[best_epoch]):
             best_epoch = epoch
             wrongs_to_ret = [train_wrongs, dev_wrongs]
             print("Updated best epoch: " + str(dev_f1_aves[best_epoch])) 
@@ -418,7 +419,7 @@ def main():
     model = Model(NUM_LABELS, VOCAB_SIZE,
                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
-    model.load_state_dict(torch.load("./model_states/baseline_F_10.pt"))
+#    model.load_state_dict(torch.load("./model_states/baseline_F_10.pt"))
 
     # Move the model to the GPU if available
     if using_GPU:
@@ -457,7 +458,7 @@ def main():
     print(wrongs)
 
     print("saving model...")
-    torch.save(model.state_dict(), "./model_states/baseline_F_20.pt")
+    torch.save(model.state_dict(), "./model_states/baseline_" + set_name + "_" + str(epochs) + ".pt")
     '''                   
     print(str(dev_c))
     best_epochs = np.argmax(np.array(dev_c))
