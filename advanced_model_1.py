@@ -19,7 +19,8 @@ NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
 epochs = 10
 EMBEDDING_DIM = 50
-HIDDEN_DIM = 2 * EMBEDDING_DIM
+MAX_CO_OCCURS = 10
+HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
 DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
@@ -95,7 +96,7 @@ def logsumexp(inputs, dim=None, keepdim=False):
 class Model(nn.Module):
     def __init__(self, num_labels, vocab_size, embeddings_size,
                  hidden_dim, word_embeddings, num_polarities, batch_size,
-                 dropout_rate):
+                 dropout_rate, max_co_occurs):
         super(Model, self).__init__()
         self.dropout = nn.Dropout(dropout_rate)
 
@@ -106,7 +107,8 @@ class Model(nn.Module):
         self.word_embeds = nn.Embedding(vocab_size, embeddings_size)
         self.word_embeds.weight.data.copy_(torch.FloatTensor(word_embeddings))
         self.word_embeds.weight.requires_grad = False  # don't update the embeddings
-        self.feature_embeds = nn.Embedding(num_polarities + 1, embeddings_size)  # add 1 for <pad>
+        self.polarity_embeds = nn.Embedding(num_polarities + 1, embeddings_size)  # add 1 for <pad>
+        self.co_occur_embeds = nn.Embedding(max_co_occurs, embeddings_size)
 
         # The LSTM takes [word embeddings, feature embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
@@ -121,28 +123,33 @@ class Model(nn.Module):
         #self.attention = nn.Linear(2 * hidden_dim, 1)
         # Attempting feedforward attention, using 2 layers and sigmoid activation fxn
         # Last layer acts as the w_alpha layer
-        self.attention = FeedForward(input_dim=2*hidden_dim, num_layers=2, hidden_dims=[hidden_dim, 1],
+        self.attention = FeedForward(input_dim=2 * hidden_dim, num_layers=2, hidden_dims=[hidden_dim, 1],
                                      activations=nn.Sigmoid())
 
         # Span embeddings
-        self._endpoint_span_extractor = EndpointSpanExtractor(2*hidden_dim,
+        self._endpoint_span_extractor = EndpointSpanExtractor(2 * hidden_dim,
                                                               combination="x,y")
-        self._attentive_span_extractor = SelfAttentiveSpanExtractor(input_dim=2*hidden_dim)
+        self._attentive_span_extractor = SelfAttentiveSpanExtractor(input_dim=2 * hidden_dim)
 
+        '''
         # FFNN for holder/target spans respectively
         self.holder_FFNN = FeedForward(input_dim=3*2*hidden_dim, num_layers=2, hidden_dims=[hidden_dim, hidden_dim],
                                        activations=nn.ReLU())
         self.target_FFNN = FeedForward(input_dim=3*2*hidden_dim, num_layers=2, hidden_dims=[hidden_dim, hidden_dim],
                                        activations=nn.ReLU())
+        '''
 
         # Scoring pairwise sentiment: linear score approach
-        self.pairwise_sentiment_score = nn.Linear(2*hidden_dim, out_features=num_labels)
+        self.pairwise_sentiment_score = FeedForward(input_dim=13 * hidden_dim, num_layers=2,
+                                                    hidden_dims=[hidden_dim, num_labels],
+                                                    activations=nn.ReLU())
 
     def forward(self, word_vec, feature_vec, lengths=None,
-                holder_inds=None, target_inds=None, holder_lengths=None, target_lengths=None):
+                holder_inds=None, target_inds=None, holder_lengths=None, target_lengths=None,
+                co_occur_feature=None):
         # Apply embeddings & prepare input
         word_embeds_vec = self.word_embeds(word_vec)
-        feature_embeds_vec = self.feature_embeds(feature_vec)
+        feature_embeds_vec = self.polarity_embeds(feature_vec)
         # print(str(word_embeds_vec.size()) + " " + str(feature_embeds_vec.size()))
 
         # [word embeddings, feature embeddings]
@@ -187,10 +194,10 @@ class Model(nn.Module):
         # Shape: (batch_size, # of target mentions, 3 * (2 * hidden_dim))
         targets = torch.cat([endpoint_target, attended_target], -1)
 
-        # Compute representation for each holder and target span
-        # Shape: (batch_size, # of target mentions, hidden_dim))
-        holder_reps = torch.mean(self.holder_FFNN(holders), dim=1)
-        target_reps = torch.mean(self.target_FFNN(targets), dim=1)
+        # Compute representation for each holder and target span, taking the mean across mentions
+        # Shape: (batch_size, 3 * (2 * hidden_dim))
+        holder_reps = torch.squeeze(torch.mean(holders, dim=1))
+        target_reps = torch.squeeze(torch.mean(targets, dim=1))
         '''
         holder_alphas = self.holder_attention(holders)
         holder_alphas = F.softmax(holder_alphas, dim=1)  # batch_size x seq_len x 1
@@ -201,9 +208,17 @@ class Model(nn.Module):
         weighted_target_reps = torch.sum(torch.mul(alphas, lstm_out), dim=1)  # batch_size x hidden_dim
         '''
 
+        # Apply embeds for co-occur feature
+        # Shape: (batch_size, hidden_dim)
+        co_occur_feature[co_occur_feature >= 10] = 9
+        co_occur_embeds_vec = self.co_occur_embeds(co_occur_feature)
+
         # Get final pairwise score, passing in holder and target representations
-        # shape: (batch_size, 1, 2 * hidden_dim)
-        output = self.pairwise_sentiment_score(torch.cat([holder_reps, target_reps], dim=-1))
+        # Shape: (batch_size, hidden_dim + 2 * (3 * (2 * hidden_dim)))
+        final_rep = torch.cat([holder_reps, target_reps, co_occur_embeds_vec], dim=-1)
+
+        # print(co_occur_embeds_vec)
+        output = self.pairwise_sentiment_score(final_rep)
         '''
         dimension = 1
         # Compute and apply weights (attention) to each layer (so dim=1)
@@ -272,6 +287,7 @@ def train(Xtrain, Xdev, Xtest,
             (words, lengths), polarity, label = batch.text, batch.polarity, batch.label
             (holders, holder_lengths) = batch.holder_index
             (targets, target_lengths) = batch.target_index
+            co_occur_feature = batch.co_occurrences
 
             # Step 1. Remember that Pytorch accumulates gradients.
             # We need to clear them out before each instance
@@ -280,7 +296,8 @@ def train(Xtrain, Xdev, Xtest,
 
             # Step 3. Run our forward pass.
             log_probs = model(words, polarity, lengths,
-                              holders, targets, holder_lengths, target_lengths)  # log probs: batch_size x 3
+                              holders, targets, holder_lengths, target_lengths,
+                              co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
 
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
@@ -356,6 +373,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
         (words, lengths), polarity, label = batch.text, batch.polarity, batch.label
         (holders, holder_lengths) = batch.holder_index
         (targets, target_lengths) = batch.target_index
+        co_occur_feature = batch.co_occurrences
 
         #words.no_grad() = lengths.no_grad() = polarity.no_grad() = label.no_grad() = True
         #holders.no_grad() = targets.no_grad() = holder_lengths.no_grad() = target_lengths.no_grad() = True
@@ -366,7 +384,8 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
             print(label.data)
         '''
         log_probs = model(words, polarity, lengths,
-                          holders, targets, holder_lengths, target_lengths)  # log probs: batch_size x 3
+                          holders, targets, holder_lengths, target_lengths,
+                          co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
         if losses is not None:
             loss = loss_fxn(log_probs, label)
             loss_this_batch.append(float(loss))
@@ -455,7 +474,8 @@ def main():
 
     model = Model(NUM_LABELS, VOCAB_SIZE,
                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
-                  NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
+                  NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
+                  max_co_occurs=MAX_CO_OCCURS)
 
     print("num params = ")
     print(len(model.state_dict()))
