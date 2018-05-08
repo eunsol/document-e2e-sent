@@ -17,7 +17,7 @@ from allennlp.modules.span_extractors import SelfAttentiveSpanExtractor, Endpoin
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 20
+epochs = 10
 EMBEDDING_DIM = 50
 HIDDEN_DIM = 2 * EMBEDDING_DIM
 NUM_POLARITIES = 6
@@ -27,7 +27,7 @@ threshold = torch.log(torch.FloatTensor([0.5, 0.2, 0.5]))
 if using_GPU:
     threshold = threshold.cuda()
 
-set_name = "A"
+set_name = "E"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -51,7 +51,7 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
             "F": {"filepath": "./data/new_annot/feature",
                   "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
-                  "batch": 100},
+                  "batch": 80},
             "G": {"filepath": "./data/new_annot/feature",
                   "filenames": ["G_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1.823, 0.0699, 1.0055]),
@@ -59,7 +59,11 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
             "H": {"filepath": "./data/new_annot/feature",
                   "filenames": ["H_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.054566, 1.0055]),
-                  "batch": 250},
+                  "batch": 100},
+            "I": {"filepath": "./data/new_annot/mpqa_split",
+                  "filenames": ["train.json", "dev.json", "test.json"],
+                  "weights": torch.FloatTensor([1.3745, 0.077, 1]),
+                  "batch": 50}
            }
 
 BATCH_SIZE = datasets[set_name]["batch"]
@@ -290,7 +294,6 @@ def train(Xtrain, Xdev, Xtest,
             i += 1
         print("loss = " + str((sum(losses) / len(losses))))
         train_loss_epoch.append(float(sum(losses)) / float(len(losses)))
-        train_loss_epoch.append(float(sum(losses)) / float(len(losses)))
         # Apply decay
         if (epoch % 10 == 0):
             for param_group in optimizer.param_groups:
@@ -456,6 +459,7 @@ def main():
 
     print("num params = ")
     print(len(model.state_dict()))
+    model.load_state_dict(torch.load("./model_states/adv_E_10.pt"))
 
     # Move the model to the GPU if available
     if using_GPU:
@@ -490,7 +494,7 @@ def main():
     print("    " + str(test_a[best_epoch]))
 
     print("saving model...")
-    torch.save(model.state_dict(), "./model_states/adv_E_20.pt")
+    torch.save(model.state_dict(), "./model_states/adv_" + set_name + "_" + str(epochs + 10) + ".pt")
  
     '''                   
     print(str(dev_c))

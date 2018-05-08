@@ -14,7 +14,7 @@ import data_processor as parser
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 20
+epochs = 10
 EMBEDDING_DIM = 50
 HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
@@ -22,7 +22,7 @@ DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
 ERROR_ANALYSIS = False
 
-set_name = "E"
+set_name = "F"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -338,7 +338,7 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
             mask = (label.data != pred_label)
             docs = docid[mask]
             wrong_doc = list(map(lambda x: ix_to_docid[int(x)], docs))
-            wrong_label = list(pred_label[mask])
+            wrong_label = list(log_probs[mask]) 
             actual_label = list(label.data[mask])
             wrong_docs[0].extend(wrong_doc)
             wrong_docs[1].extend(wrong_label)
@@ -418,7 +418,7 @@ def main():
     model = Model(NUM_LABELS, VOCAB_SIZE,
                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
-#    model.load_state_dict(torch.load("./model_states/baseline.pt"))
+    model.load_state_dict(torch.load("./model_states/baseline_F_10.pt"))
 
     # Move the model to the GPU if available
     if using_GPU:
@@ -457,7 +457,7 @@ def main():
     print(wrongs)
 
     print("saving model...")
-    torch.save(model.state_dict(), "./model_states/baseline_E_20.pt")
+    torch.save(model.state_dict(), "./model_states/baseline_F_20.pt")
     '''                   
     print(str(dev_c))
     best_epochs = np.argmax(np.array(dev_c))
