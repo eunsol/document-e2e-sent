@@ -126,7 +126,7 @@ def main():
                      "targets": targets[0].data.cpu().numpy().tolist(),
                      "probabilities": probs[len(probs) - 1],
                      "prediction": preds[len(preds) - 1],
-                     "actual": probs[len(acts) - 1]}
+                     "actual": acts[len(acts) - 1]}
             if int(pred_label) != int(label):
                 texts.append(entry)
             else:
@@ -138,11 +138,11 @@ def main():
     print(probs)
     print(preds)
     print(acts)
-    with open("wrong_docs.json", "w") as wf:
+    with open("./error_analysis/wrong_docs.json", "w") as wf:
         for line in texts:
             json.dump(line, wf)
             wf.write("\n")
-    with open("right_docs.json", "w") as wf:
+    with open("./error_analysis/right_docs.json", "w") as wf:
         for line in right_texts:
             json.dump(line, wf)
             wf.write("\n")
