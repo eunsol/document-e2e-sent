@@ -1,7 +1,7 @@
 import torch
 import data_processor as parser
 from allennlp.modules.span_extractors import SelfAttentiveSpanExtractor, EndpointSpanExtractor
-from advanced_model_1 import Model
+from advanced_model_1 import Model1
 import json
 
 NUM_LABELS = 3
@@ -58,19 +58,19 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
 
 BATCH_SIZE = 1
 
+
 def decode(word_indices, ix_to_word):
     words = [ix_to_word[index] for index in word_indices.data[0]]
     return words
 
+
 def main():
-    dev_data, _, _, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
-                                                                            filepath=datasets[set_name]["filepath"],
-                                                                            train_name=datasets[set_name]["filenames"][
-                                                                                1],
-                                                                            dev_name=datasets[set_name]["filenames"][0],
-                                                                            test_name=datasets[set_name]["filenames"][
-                                                                                2],
-                                                                            has_holdtarg=True)
+    dev_data, _, _, TEXT, DOCID, _ = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
+                                                              filepath=datasets[set_name]["filepath"],
+                                                              train_name=datasets[set_name]["filenames"][1],
+                                                              dev_name=datasets[set_name]["filenames"][0],
+                                                              test_name=datasets[set_name]["filenames"][2],
+                                                              has_holdtarg=True)
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos
@@ -79,10 +79,10 @@ def main():
 
     word_embeds = TEXT.vocab.vectors
 
-    model = Model(NUM_LABELS, VOCAB_SIZE,
-                  EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
-                  NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
-                  max_co_occurs=MAX_CO_OCCURS)
+    model = Model1(NUM_LABELS, VOCAB_SIZE,
+                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
+                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
+                   max_co_occurs=MAX_CO_OCCURS)
 
     print("num params = ")
     print(len(model.state_dict()))
@@ -115,14 +115,15 @@ def main():
                           holders, targets, holder_lengths, target_lengths,
                           co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
         pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
-        if pred_label != 1:
+        print(str(pred_label) + " " + str(int(pred_label)))
+        if int(pred_label) != 1:
             prob = torch.exp(log_probs)
-            probs.append(prob.data.cpu().numpy().tolist())
-            preds.append(float(pred_label))
-            texts.append({"docid": DOCID.vocab.itos(docid[0]), "holders": holders.data.cpu().numpy(), "targets": targets.data.cpu().numpy()})
-#            print(label.data[0])
-            acts.append(label.data[0])
-            print(texts)
+            probs.append(prob[0].data.cpu().numpy().tolist())
+            preds.append(int(pred_label))
+            texts.append({"docid": DOCID.vocab.itos[docid],
+                          "holders": holders[0].data.cpu().numpy().tolist(),
+                          "targets": targets[0].data.cpu().numpy().tolist()})
+            acts.append(int(label))
         if counter % 100 == 0:
             print(counter)
 
