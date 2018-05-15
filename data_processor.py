@@ -27,7 +27,7 @@ def custom_post_inds(input, *args):
 
 
 def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new_annot/trainsplit_holdtarg",
-                      train_name="train.json", dev_name="dev.json", test_name="test.json", has_holdtarg=False):
+                      train_name="train.json", dev_name="dev.json", test_name="test.json"):
     """
     Reads the file with name filename
     """
@@ -97,4 +97,4 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
 
     print("Repeat = " + str(train_iter.repeat))
 
-    return train_iter, val_iter, test_iter, TEXT, DOCID
+    return train_iter, val_iter, test_iter, TEXT, DOCID, POLARITY
