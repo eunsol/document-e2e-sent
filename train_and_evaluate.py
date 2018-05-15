@@ -11,13 +11,15 @@ from random import shuffle
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import graph_results as plotter
 import data_processor as parser
-from advanced_model_2 import Model2
+from advanced_model_1 import Model1
+#  from advanced_model_2 import Model2
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
 epochs = 10
 EMBEDDING_DIM = 50
 MAX_CO_OCCURS = 10
+MAX_NUM_MENTIONS = 10
 HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
 DROPOUT_RATE = 0.2
@@ -25,6 +27,7 @@ using_GPU = torch.cuda.is_available()
 threshold = torch.log(torch.FloatTensor([0.5, 0.2, 0.5]))
 if using_GPU:
     threshold = threshold.cuda()
+MODEL = Model1
 
 set_name = "A"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
@@ -116,7 +119,7 @@ def train(Xtrain, Xdev, Xtest,
         print("Epoch " + str(epoch))
         i = 0
         for batch in Xtrain:
-            (words, lengths), polarity, label = batch.text, batch.polarity, batch.label
+            (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
             (holders, holder_lengths) = batch.holder_index
             (targets, target_lengths) = batch.target_index
             co_occur_feature = batch.co_occurrences
@@ -127,7 +130,7 @@ def train(Xtrain, Xdev, Xtest,
             model.batch_size = len(label.data)  # set batch size
 
             # Step 3. Run our forward pass.
-            log_probs = model(words, polarity, lengths,
+            log_probs = model(words, polarity, holder_target, lengths,
                               holders, targets, holder_lengths, target_lengths,
                               co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
 
@@ -202,7 +205,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
     for batch in Xs:
         counter += 1
         # print(word_to_ix)
-        (words, lengths), polarity, label = batch.text, batch.polarity, batch.label
+        (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
         (holders, holder_lengths) = batch.holder_index
         (targets, target_lengths) = batch.target_index
         co_occur_feature = batch.co_occurrences
@@ -215,7 +218,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
         if len(label.data) > BATCH_SIZE:
             print(label.data)
         '''
-        log_probs = model(words, polarity, lengths,
+        log_probs = model(words, polarity, holder_target, lengths,
                           holders, targets, holder_lengths, target_lengths,
                           co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
         if losses is not None:
@@ -312,7 +315,7 @@ def main():
 
     word_embeds = TEXT.vocab.vectors
 
-    model = Model2(NUM_LABELS, VOCAB_SIZE,
+    model = MODEL(NUM_LABELS, VOCAB_SIZE,
                    EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                    NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
                    max_co_occurs=MAX_CO_OCCURS)
