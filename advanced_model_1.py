@@ -57,7 +57,7 @@ class Model1(nn.Module):
 
         # The LSTM takes [word embeddings, feature embeddings, holder/target embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(3 * embeddings_size, hidden_dim, num_layers=2,
+        self.lstm = nn.LSTM(2 * embeddings_size, hidden_dim, num_layers=2,
                             batch_first=True, bidirectional=True, dropout=dropout_rate)
 
         # The linear layer that maps from hidden state space to target space
@@ -97,11 +97,10 @@ class Model1(nn.Module):
         # Apply embeddings & prepare input
         word_embeds_vec = self.word_embeds(word_vec)
         feature_embeds_vec = self.polarity_embeds(feature_vec)
-        ht_embeds_vec = self.holder_target_embeds(holder_target_vec)
         # print(str(word_embeds_vec.size()) + " " + str(feature_embeds_vec.size()))
 
         # [word embeddings, feature embeddings]
-        lstm_input = torch.cat((word_embeds_vec, feature_embeds_vec, ht_embeds_vec), 2)
+        lstm_input = torch.cat((word_embeds_vec, feature_embeds_vec), 2)
         # print(lstm_input.size())
         #        total_length = lstm_input.size(1)  # get the max sequence length
 
