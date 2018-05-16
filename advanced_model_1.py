@@ -46,7 +46,7 @@ class Model1(nn.Module):
         # Specify embedding layers
         self.word_embeds = nn.Embedding(vocab_size, embeddings_size)
         self.word_embeds.weight.data.copy_(torch.FloatTensor(word_embeddings))
-        self.word_embeds.weight.requires_grad = False  # don't update the embeddings
+        # self.word_embeds.weight.requires_grad = False  # don't update the embeddings
         self.polarity_embeds = nn.Embedding(num_polarities + 1, embeddings_size)  # add 1 for <pad>
         self.co_occur_embeds = nn.Embedding(max_co_occurs, embeddings_size)
         self.holder_target_embeds = nn.Embedding(5, embeddings_size)  # add 2 for <pad> and <unk>
@@ -174,13 +174,15 @@ class Model1(nn.Module):
         co_occur_embeds_vec = self.co_occur_embeds(co_occur_feature)
 
         holder_lengths[holder_lengths >= num_mentions_cats] = num_mentions_cats
-        num_holder_embeds_vec = self.num_holder_mention_embeds(torch.add(holder_lengths, -1))
+        holder_lengths = torch.add(holder_lengths, -1)
+        num_holder_embeds_vec = self.num_holder_mention_embeds(holder_lengths)
         target_lengths[target_lengths >= num_mentions_cats] = num_mentions_cats
-        num_target_embeds_vec = self.num_holder_mention_embeds(torch.add(target_lengths, -1))
+        target_lengths = torch.add(target_lengths, -1)
+        num_target_embeds_vec = self.num_holder_mention_embeds(target_lengths)
 
-        min_lengths = torch.min(holder_lengths, target_lengths)
+        min_lengths = torch.min(holder_lengths, target_lengths)  # already subtracted 1 from holder & target lengths
         min_lengths[min_lengths >= num_mentions_cats] = num_mentions_cats
-        min_embeds_vec = self.min_mention_embeds(torch.add(min_lengths, -1))
+        min_embeds_vec = self.min_mention_embeds(min_lengths)
 
         '''
         # Get final pairwise score, passing in holder and target representations
