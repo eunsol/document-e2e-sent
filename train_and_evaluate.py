@@ -24,12 +24,12 @@ HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
 DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
-threshold = torch.log(torch.FloatTensor([0.5, 0.2, 0.5]))
+threshold = torch.log(torch.FloatTensor([0.5, 0.02, 0.5]))
 if using_GPU:
     threshold = threshold.cuda()
 MODEL = Model1
 
-set_name = "A"
+set_name = "F"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -225,17 +225,15 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
             loss = loss_fxn(log_probs, label)
             loss_this_batch.append(float(loss))
 
+        '''
         pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
         '''
+        pred_label = torch.ones(len(log_probs), dtype=torch.long)
         if using_GPU:
             pred_label = pred_label.cuda()
-        print(log_probs[:, 0] > threshold[0])
-        # predict 0 if index at 0 > 0.5
-        pred_label[log_probs[:, 0] > threshold[0]] = 2
-        # predict 2 if index at 2 > 0.5
-        pred_label[log_probs[:, 2] > threshold[2]] = 0
-        pred_label = pred_label.data
-        '''
+        pred_label[log_probs[:, 2] > log_probs[:, 0]] = 2  # max of the 2
+        pred_label[log_probs[:, 0] > log_probs[:, 2]] = 0
+        pred_label[log_probs[:, 1] > threshold[1]] = 1  # predict is 1 if even just > 2% certainty
 
         # Count the number of examples in this batch
         for i in range(0, NUM_LABELS):
