@@ -84,13 +84,13 @@ class Model1(nn.Module):
                                        activations=nn.ReLU())
 
         # Scoring pairwise sentiment: linear score approach
-        #  '''
+        '''
         self.pairwise_sentiment_score = FeedForward(input_dim=15 * hidden_dim, num_layers=2,
                                                     hidden_dims=[hidden_dim, num_labels],
                                                     activations=nn.ReLU())
         '''
-        self.pairwise_sentiment_score = nn.Linear(in_features=14 * hidden_dim, out_features=num_labels)
-        '''
+        self.pairwise_sentiment_score = nn.Linear(in_features=17 * hidden_dim, out_features=num_labels)
+        # '''
 
     def forward(self, word_vec, feature_vec, holder_target_vec, lengths=None,
                 holder_inds=None, target_inds=None, holder_lengths=None, target_lengths=None,
@@ -224,7 +224,7 @@ class Model1(nn.Module):
         target_rank_vec = self.target_rank_embeds(target_rank)
 
         # Shape: (batch_size, 3 * hidden_dim + 2 * (3 * (2 * hidden_dim)))
-        final_rep = torch.cat([holder_reps, target_reps, co_occur_embeds_vec, holder_rank_vec, target_rank_vec], dim=-1)
+        final_rep = torch.cat([holder_reps, target_reps, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec, holder_rank_vec, target_rank_vec], dim=-1)
 
         final_rep = self.dropout(final_rep)  # dropout
 
