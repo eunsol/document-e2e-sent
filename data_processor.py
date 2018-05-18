@@ -52,13 +52,16 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
                        include_lengths=True)
 
     CO_OCCURRENCES = data.Field(sequential=False, use_vocab=False, batch_first=True)
+    HOLDER_RANK = data.Field(sequential=False, use_vocab=False, batch_first=True)
+    TARGET_RANK = data.Field(sequential=False, use_vocab=False, batch_first=True)
 
     data_fields = {'token': ('text', TEXT), 'label': ('label', LABEL),
                    #'holder': ('holder', HOLDER), 'target': ('target', TARGET),
                    'polarity': ('polarity', POLARITY),
                    'docid': ('docid', DOCID),
                    'holder_index': ('holder_index', H_IND), 'target_index': ('target_index', T_IND),
-                   'co_occurrences': ('co_occurrences', CO_OCCURRENCES)}
+                   'co_occurrences': ('co_occurrences', CO_OCCURRENCES),
+                   'holder_rank': ('holder_rank', HOLDER_RANK), 'target_rank': ('target_rank', TARGET_RANK)}
     if has_holdtarg:
         data_fields['holder_target'] = ('holder_target', HOLDER_TARGET)
 

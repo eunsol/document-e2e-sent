@@ -24,7 +24,7 @@ HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
 DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
-threshold = torch.log(torch.FloatTensor([0.5, 0.02, 0.5]))
+threshold = torch.log(torch.FloatTensor([0.5, 0.1, 0.5]))
 if using_GPU:
     threshold = threshold.cuda()
 MODEL = Model1
@@ -123,6 +123,7 @@ def train(Xtrain, Xdev, Xtest,
             (holders, holder_lengths) = batch.holder_index
             (targets, target_lengths) = batch.target_index
             co_occur_feature = batch.co_occurrences
+            holder_rank, target_rank = batch.holder_rank, batch.target_rank
 
             # Step 1. Remember that Pytorch accumulates gradients.
             # We need to clear them out before each instance
@@ -132,7 +133,8 @@ def train(Xtrain, Xdev, Xtest,
             # Step 3. Run our forward pass.
             log_probs = model(words, polarity, holder_target, lengths,
                               holders, targets, holder_lengths, target_lengths,
-                              co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
+                              co_occur_feature=co_occur_feature,
+                              holder_rank=holder_rank, target_rank=target_rank)  # log probs: batch_size x 3
 
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
@@ -147,7 +149,7 @@ def train(Xtrain, Xdev, Xtest,
         print("loss = " + str((sum(losses) / len(losses))))
         train_loss_epoch.append(float(sum(losses)) / float(len(losses)))
         # Apply decay
-        if (epoch % 10 == 0):
+        if epoch % 10 == 0:
             for param_group in optimizer.param_groups:
                 param_group['lr'] *= lr_decay
         '''
@@ -169,7 +171,7 @@ def train(Xtrain, Xdev, Xtest,
         train_accs.append(train_acc)
         dev_res.append(dev_score)
         dev_f1_aves.append(sum(dev_score) / len(dev_score))
-        if (dev_f1_aves[epoch] > dev_f1_aves[best_epoch]):
+        if dev_f1_aves[epoch] > dev_f1_aves[best_epoch]:
             best_epoch = epoch
             print("Updated best epoch: " + str(dev_f1_aves[best_epoch]))
         dev_accs.append(dev_acc)
@@ -209,6 +211,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
         (holders, holder_lengths) = batch.holder_index
         (targets, target_lengths) = batch.target_index
         co_occur_feature = batch.co_occurrences
+        holder_rank, target_rank = batch.holder_rank, batch.target_rank
 
         # words.no_grad() = lengths.no_grad() = polarity.no_grad() = label.no_grad() = True
         # holders.no_grad() = targets.no_grad() = holder_lengths.no_grad() = target_lengths.no_grad() = True
@@ -220,12 +223,13 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
         '''
         log_probs = model(words, polarity, holder_target, lengths,
                           holders, targets, holder_lengths, target_lengths,
-                          co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
+                          co_occur_feature=co_occur_feature,
+                          holder_rank=holder_rank, target_rank=target_rank)  # log probs: batch_size x 3
         if losses is not None:
             loss = loss_fxn(log_probs, label)
             loss_this_batch.append(float(loss))
 
-        '''
+        # '''
         pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
         '''
         pred_label = torch.ones(len(log_probs), dtype=torch.long)
@@ -233,7 +237,8 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
             pred_label = pred_label.cuda()
         pred_label[log_probs[:, 2] > log_probs[:, 0]] = 2  # max of the 2
         pred_label[log_probs[:, 0] > log_probs[:, 2]] = 0
-        pred_label[log_probs[:, 1] > threshold[1]] = 1  # predict is 1 if even just > 2% certainty
+        pred_label[log_probs[:, 1] > threshold[1]] = 1  # predict is 1 if even just > 10% certainty
+        '''
 
         # Count the number of examples in this batch
         for i in range(0, NUM_LABELS):

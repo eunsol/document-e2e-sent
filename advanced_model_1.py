@@ -53,7 +53,8 @@ class Model1(nn.Module):
         self.num_holder_mention_embeds = nn.Embedding(num_mentions_cats, embeddings_size)
         self.num_target_mention_embeds = nn.Embedding(num_mentions_cats, embeddings_size)
         self.min_mention_embeds = nn.Embedding(num_mentions_cats, embeddings_size)
-        self.mean_mention_embeds = nn.Embedding(num_mentions_cats, embeddings_size)
+        self.holder_rank_embeds = nn.Embedding(5, embeddings_size)
+        self.target_rank_embeds = nn.Embedding(5, embeddings_size)
 
         # The LSTM takes [word embeddings, feature embeddings, holder/target embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
@@ -84,7 +85,7 @@ class Model1(nn.Module):
 
         # Scoring pairwise sentiment: linear score approach
         #  '''
-        self.pairwise_sentiment_score = FeedForward(input_dim=14 * hidden_dim, num_layers=2,
+        self.pairwise_sentiment_score = FeedForward(input_dim=15 * hidden_dim, num_layers=2,
                                                     hidden_dims=[hidden_dim, num_labels],
                                                     activations=nn.ReLU())
         '''
@@ -93,7 +94,7 @@ class Model1(nn.Module):
 
     def forward(self, word_vec, feature_vec, holder_target_vec, lengths=None,
                 holder_inds=None, target_inds=None, holder_lengths=None, target_lengths=None,
-                co_occur_feature=None):
+                co_occur_feature=None, holder_rank=None, target_rank=None):
         # Apply embeddings & prepare input
         word_embeds_vec = self.word_embeds(word_vec)
         feature_embeds_vec = self.polarity_embeds(feature_vec)
@@ -215,15 +216,23 @@ class Model1(nn.Module):
         # (b x n x r x n)
         bilin = tf.reshape(bilin, output_shape)
         '''
+        holder_rank[holder_rank >= 5] = 5  # all ranks >= 5 get mapped to 6
+        holder_rank = torch.add(holder_rank, -1)  # start indices at 0
+        target_rank[target_rank >= 5] = 5
+        target_rank = torch.add(target_rank, -1)  # start indices at 0
+        holder_rank_vec = self.holder_rank_embeds(holder_rank)
+        target_rank_vec = self.target_rank_embeds(target_rank)
 
-        # Shape: (batch_size, 2 * hidden_dim + 2 * (3 * (2 * hidden_dim)))
-        final_rep = torch.cat([holder_reps, target_reps, co_occur_embeds_vec, min_embeds_vec], dim=-1)
+        # Shape: (batch_size, 3 * hidden_dim + 2 * (3 * (2 * hidden_dim)))
+        final_rep = torch.cat([holder_reps, target_reps, co_occur_embeds_vec, holder_rank_vec, target_rank_vec], dim=-1)
 
-        # print(co_occur_embeds_vec)
+        final_rep = self.dropout(final_rep)  # dropout
+
         output = self.pairwise_sentiment_score(final_rep)
         log_probs = F.log_softmax(output, dim=1)  # batch_size x 1
 
         return log_probs  # , alphas
+
 
     def aggregate_mentions(self, inputs, num_holder_mentions=None, num_target_mentions=None, dim=None, keepdim=False):
         """Numerically stable logsumexp.
