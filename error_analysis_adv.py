@@ -1,7 +1,7 @@
 import torch
 import data_processor as parser
 from allennlp.modules.span_extractors import SelfAttentiveSpanExtractor, EndpointSpanExtractor
-from advanced_model_1 import Model
+from advanced_model_1 import Model1
 import json
 
 NUM_LABELS = 3
@@ -13,7 +13,7 @@ HIDDEN_DIM = EMBEDDING_DIM
 NUM_POLARITIES = 6
 DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
-threshold = torch.log(torch.FloatTensor([0.5, 0.2, 0.5]))
+threshold = torch.log(torch.FloatTensor([0.5, 0.1, 0.5]))
 if using_GPU:
     threshold = threshold.cuda()
 
@@ -39,7 +39,7 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "weights": torch.FloatTensor([1, 0.3523, 1.0055]),
                   "batch": 25},
             "F": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "mpqa_new.json"],
                   "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
                   "batch": 80},
             "G": {"filepath": "./data/new_annot/feature",
@@ -65,12 +65,12 @@ def decode(word_indices, ix_to_word):
 
 
 def main():
-    dev_data, _, _, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
-                                                           filepath=datasets[set_name]["filepath"],
-                                                           train_name=datasets[set_name]["filenames"][1],
-                                                           dev_name=datasets[set_name]["filenames"][0],
-                                                           test_name=datasets[set_name]["filenames"][2],
-                                                           has_holdtarg=True)
+    dev_data, _, _, TEXT, DOCID, _ = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
+                                                              filepath=datasets[set_name]["filepath"],
+                                                              train_name=datasets[set_name]["filenames"][1],
+                                                              dev_name=datasets[set_name]["filenames"][0],
+                                                              test_name=datasets[set_name]["filenames"][2],
+                                                              has_holdtarg=True)
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos
@@ -79,14 +79,14 @@ def main():
 
     word_embeds = TEXT.vocab.vectors
 
-    model = Model(NUM_LABELS, VOCAB_SIZE,
-                  EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
-                  NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
-                  max_co_occurs=MAX_CO_OCCURS)
+    model = Model1(NUM_LABELS, VOCAB_SIZE,
+                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
+                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
+                   max_co_occurs=MAX_CO_OCCURS)
 
     print("num params = ")
     print(len(model.state_dict()))
-    model.load_state_dict(torch.load("./model_states/adv_" + set_name + "_" + str(epochs) + ".pt"))
+    model.load_state_dict(torch.load("./model_states/adv_" + set_name + "_" + str(epochs) + "_mpqa.pt"))
     model.eval()
 
     # Move the model to the GPU if available
@@ -102,7 +102,7 @@ def main():
     right_texts = []
     for batch in dev_data:
         counter += 1
-        (words, lengths), polarity, label = batch.text, batch.polarity, batch.label
+        (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
         (holders, holder_lengths) = batch.holder_index
         (targets, target_lengths) = batch.target_index
         co_occur_feature = batch.co_occurrences
@@ -112,11 +112,19 @@ def main():
         model.zero_grad()
         model.batch_size = len(label.data)  # set batch size
         # Step 3. Run our forward pass.
-        log_probs = model(words, polarity, lengths,
+        log_probs = model(words, polarity, holder_target, lengths,
                           holders, targets, holder_lengths, target_lengths,
                           co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
-        pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
-        if int(pred_label) != 1:
+#        pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
+
+        pred_label = torch.ones(len(log_probs), dtype=torch.long)
+        if using_GPU:
+            pred_label = pred_label.cuda()
+        pred_label[log_probs[:, 2] + 0.02 > log_probs[:, 0]] = 2  # classify more as positive
+        pred_label[log_probs[:, 0] > log_probs[:, 2] + 0.02] = 0
+        pred_label[log_probs[:, 1] > threshold[1]] = 1  # predict is 1 if even just > 10% certainty
+
+        if int(pred_label) != -1:
             prob = torch.exp(log_probs)
             probs.append(prob[0].data.cpu().numpy().tolist())
             preds.append(int(pred_label))
@@ -138,11 +146,11 @@ def main():
     print(probs)
     print(preds)
     print(acts)
-    with open("./error_analysis/wrong_docs.json", "w") as wf:
+    with open("./error_analysis/added_mention_features/wrong_docs_thresholds.json", "w") as wf:
         for line in texts:
             json.dump(line, wf)
             wf.write("\n")
-    with open("./error_analysis/right_docs.json", "w") as wf:
+    with open("./error_analysis/added_mention_features/right_docs_mpqa_thresholds.json", "w") as wf:
         for line in right_texts:
             json.dump(line, wf)
             wf.write("\n")

@@ -24,7 +24,7 @@ ERROR_ANALYSIS = False
 
 set_name = "A"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "filenames": ["new_train.json", "acl_dev_eval_new.json", "mpqa_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
                   "batch": 10},
             "B": {"filepath": "./data/new_annot/trainsplit_holdtarg",
@@ -44,7 +44,7 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "weights": torch.FloatTensor([1, 0.3523, 1.0055]),
                   "batch": 25},
             "F": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "mpqa_new.json"],
                   "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
                   "batch": 100},
             "G": {"filepath": "./data/new_annot/feature",
@@ -401,7 +401,7 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
 
 
 def main():
-    train_data, dev_data, test_data, TEXT, DOCID = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
+    train_data, dev_data, test_data, TEXT, DOCID, _ = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
                                                                             filepath=datasets[set_name]["filepath"],
                                                                             train_name=datasets[set_name]["filenames"][0],
                                                                             dev_name=datasets[set_name]["filenames"][1],
