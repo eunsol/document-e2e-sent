@@ -112,12 +112,12 @@ class Model1(nn.Module):
 
         # Scoring pairwise sentiment: linear score approach
         '''
-        self.pairwise_sentiment_score = FeedForward(input_dim=15 * hidden_dim, num_layers=2,
+        self.final_sentiment_score = FeedForward(input_dim=15 * hidden_dim, num_layers=2,
                                                     hidden_dims=[hidden_dim, num_labels],
                                                     activations=nn.ReLU())
         '''
-        # self.pairwise_sentiment_score = nn.Linear(in_features=17 * hidden_dim, out_features=num_labels)
-        self.pairwise_sentiment_score = nn.Linear(in_features=12 * hidden_dim, out_features=num_labels)
+        self.final_sentiment_score = nn.Linear(in_features=17 * hidden_dim, out_features=num_labels)
+        #  self.pairwise_sentiment_score = nn.Linear(in_features=12 * hidden_dim, out_features=num_labels)
         # '''
 
     def forward(self, word_vec, feature_vec, holder_target_vec, lengths=None,
@@ -170,11 +170,25 @@ class Model1(nn.Module):
         # Shape: (batch_size, # of target mentions, 3 * (2 * hidden_dim))
         targets = torch.cat([endpoint_target, attended_target], -1)
 
-        '''
-        # Compute representation for each holder and target span, taking the mean across mentions
-        # Shape: (batch_size, 3 * (2 * hidden_dim))
-        holder_reps = holders.mean(1)
-        target_reps = targets.mean(1)
+        # Shape: (b, h * t, 6 * d)
+        holders_repeat = holders.repeat(1, targets.size()[1], 1)  # Repeat along dimension 2
+        # Shape: (b, h, 6 * d * t)
+        targets_repeat = targets.repeat(1, 1, holders.size()[1])  # Repeat along dimension 2
+        # Shape: (b, h * t, 6 * d)
+        targets_repeat = targets_repeat.view(targets.size()[0], -1, targets.size()[2])  # View along dimension 1
+        # all_pairs =
+        # [H1, T1]
+        # [H2, T1]
+        # [H1, T2]
+        # [H1, T2]
+        # Shape: (b, h * t, 12 * d)
+        all_pairs = torch.cat([holders_repeat, targets_repeat], dim=2)
+        # Shape: (b, h * t, 1)
+        pair_weights = self.pair_attention(all_pairs)
+        # Shape: (b, h * t, 12 * d)
+        pairwise_scores = torch.mul(pair_weights, all_pairs)
+        # Shape: (b, 12 * d)
+        pairwise_scores = pairwise_scores.sum(1)
         
         # Apply embeds for co-occur feature
         # Shape: (batch_size, hidden_dim)
@@ -203,38 +217,12 @@ class Model1(nn.Module):
         holder_rank_vec = self.holder_rank_embeds(holder_rank)
         target_rank_vec = self.target_rank_embeds(target_rank)
 
-        # Shape: (batch_size, 3 * hidden_dim + 2 * (3 * (2 * hidden_dim)))
-        final_rep = torch.cat([holder_reps, target_reps, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec, holder_rank_vec, target_rank_vec], dim=-1)
+        # Shape: (batch_size, 3 * hidden_dim + 12 * hidden_dim)
+        final_rep = torch.cat([pairwise_scores, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec, holder_rank_vec, target_rank_vec], dim=-1)
         final_rep = self.dropout(final_rep)  # dropout
 
-        output = self.pairwise_sentiment_score(final_rep)
+        output = self.final_sentiment_score(final_rep)
         log_probs = F.log_softmax(output, dim=1)  # Shape: b x 3
-        '''
-        # Shape: (b, h * t, 6 * d)
-        holders_repeat = holders.repeat(1, targets.size()[1], 1)  # Repeat along dimension 2
-        # Shape: (b, h, 6 * d * t)
-        targets_repeat = targets.repeat(1, 1, holders.size()[1])  # Repeat along dimension 2
-        # Shape: (b, h * t, 6 * d)
-        targets_repeat = targets_repeat.view(targets.size()[0], -1, targets.size()[2])  # View along dimension 1
-        # all_pairs =
-        # [H1, T1]
-        # [H2, T1]
-        # [H1, T2]
-        # [H1, T2]
-        # Shape: (b, h * t, 12 * d)
-        all_pairs = torch.cat([holders_repeat, targets_repeat], dim=2)
-        all_pairs = self.dropout(all_pairs)
-
-        # Shape: (b, h * t, 3)
-        pairwise_scores = self.pairwise_sentiment_score(all_pairs)
-        # Shape: (b, h * t, 1)
-        pair_weights = self.pair_attention(all_pairs)
-        # Shape: (b, h * t, 3)
-        output = torch.mul(pair_weights, pairwise_scores)
-        # Shape: (b, 3)
-        output = torch.sum(output, dim=1)
-        log_probs = F.log_softmax(output, dim=1)  # Shape: b x 3
-        # '''
 
         return log_probs  # , alphas
 
