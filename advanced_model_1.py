@@ -107,8 +107,9 @@ class Model1(nn.Module):
         self.target_FFNN = FeedForward(input_dim=3 * 2 * hidden_dim, num_layers=2, hidden_dims=[hidden_dim, 1],
                                        activations=nn.ReLU())
 
-        # FFNN for attention to each pair
-        self.pair_attention = nn.Linear(in_features=12 * hidden_dim, out_features=1)
+        # linear for attention to each pair
+        self.pair_attention = nn.Linear(in_features=4 * hidden_dim, out_features=1)
+        # self.pairwise_sentiment_score = nn.Linear(in_features=12 * hidden_dim, out_features=6 * hidden_dim)
 
         # Scoring pairwise sentiment: linear score approach
         '''
@@ -116,7 +117,7 @@ class Model1(nn.Module):
                                                     hidden_dims=[hidden_dim, num_labels],
                                                     activations=nn.ReLU())
         '''
-        self.final_sentiment_score = nn.Linear(in_features=17 * hidden_dim, out_features=num_labels)
+        self.final_sentiment_score = nn.Linear(in_features=9 * hidden_dim, out_features=num_labels)
         #  self.pairwise_sentiment_score = nn.Linear(in_features=12 * hidden_dim, out_features=num_labels)
         # '''
 
@@ -158,7 +159,7 @@ class Model1(nn.Module):
         # Dimension: batch_size, # of holder mentions, 2 * hidden_dim
         attended_holder = self._attentive_span_extractor(lstm_out, holder_inds, span_indices_mask=holder_mask)
         # Shape: (batch_size, # of holder mentions, 3 * (2 * hidden_dim))
-        holders = torch.cat([endpoint_holder, attended_holder], -1)
+        holders = attended_holder  # torch.cat([endpoint_holder, attended_holder], -1)
 
         # Mask encoded words to isolate targets
         target_mask = (target_inds[:, :, 0] >= 0).long()
@@ -168,7 +169,7 @@ class Model1(nn.Module):
         # Dimension: batch_size, # of target mentions, 2 * hidden_dim
         attended_target = self._attentive_span_extractor(lstm_out, target_inds, span_indices_mask=target_mask)
         # Shape: (batch_size, # of target mentions, 3 * (2 * hidden_dim))
-        targets = torch.cat([endpoint_target, attended_target], -1)
+        targets = attended_target  # torch.cat([endpoint_target, attended_target], -1)
 
         # Shape: (b, h * t, 6 * d)
         holders_repeat = holders.repeat(1, targets.size()[1], 1)  # Repeat along dimension 2
@@ -183,13 +184,18 @@ class Model1(nn.Module):
         # [H1, T2]
         # Shape: (b, h * t, 12 * d)
         all_pairs = torch.cat([holders_repeat, targets_repeat], dim=2)
+        all_pairs = self.dropout(all_pairs)
+        # '''
         # Shape: (b, h * t, 1)
         pair_weights = self.pair_attention(all_pairs)
+        pair_weights = F.softmax(pair_weights, dim=1)
         # Shape: (b, h * t, 12 * d)
-        pairwise_scores = torch.mul(pair_weights, all_pairs)
+        pairwise_scores = pair_weights.mul(all_pairs)
         # Shape: (b, 12 * d)
         pairwise_scores = pairwise_scores.sum(1)
-        
+        '''
+        pairwise_scores = self.pairwise_sentiment_score(all_pairs).mean(1)
+        # '''
         # Apply embeds for co-occur feature
         # Shape: (batch_size, hidden_dim)
         co_occur_feature[co_occur_feature >= 10] = 9
@@ -217,7 +223,7 @@ class Model1(nn.Module):
         holder_rank_vec = self.holder_rank_embeds(holder_rank)
         target_rank_vec = self.target_rank_embeds(target_rank)
 
-        # Shape: (batch_size, 3 * hidden_dim + 12 * hidden_dim)
+        # Shape: (batch_size, 3 * hidden_dim + 2 * hidden_dim)
         final_rep = torch.cat([pairwise_scores, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec, holder_rank_vec, target_rank_vec], dim=-1)
         final_rep = self.dropout(final_rep)  # dropout
 
