@@ -75,7 +75,7 @@ class Model(nn.Module):
         # Specify embedding layers
         self.word_embeds = nn.Embedding(vocab_size, embeddings_size)
         self.word_embeds.weight.data.copy_(torch.FloatTensor(word_embeddings))
-        self.word_embeds.weight.requires_grad = False  # don't update the embeddings
+        # self.word_embeds.weight.requires_grad = False  # don't update the embeddings
         self.feature_embeds = nn.Embedding(num_polarities + 1, embeddings_size)  # add 1 for <pad>
         self.holder_target_embeds = nn.Embedding(5, embeddings_size)  # add 2 for <pad> and <unk>
 
