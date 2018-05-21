@@ -108,8 +108,7 @@ class Model1(nn.Module):
                                        activations=nn.ReLU())
 
         # FFNN for attention to each pair
-        self.pair_attention = FeedForward(input_dim=12 * hidden_dim, num_layers=2, hidden_dims=[hidden_dim, 1],
-                                          activations=nn.ReLU())
+        self.pair_attention = nn.Linear(in_features=12 * hidden_dim, out_features=1)
 
         # Scoring pairwise sentiment: linear score approach
         '''
