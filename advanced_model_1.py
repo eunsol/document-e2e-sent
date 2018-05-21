@@ -224,8 +224,7 @@ class Model1(nn.Module):
 
         # Shape: (b, h * t, 3)
         pairwise_scores = self.pairwise_sentiment_score(all_pairs)
-        print(pairwise_scores[0])
-        # Shape: (b, 3)a
+        # Shape: (b, 3)
         output = aggregate_mentions(pairwise_scores, dim=1)
         log_probs = F.log_softmax(output, dim=1)  # Shape: b x 3
         # '''

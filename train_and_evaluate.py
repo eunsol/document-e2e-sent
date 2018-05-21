@@ -238,7 +238,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
         pred_label[log_probs[:, 2] > log_probs[:, 0]] = 2  # max of the 2
         pred_label[log_probs[:, 0] > log_probs[:, 2]] = 0
         pred_label[log_probs[:, 1] > threshold[1]] = 1  # predict is 1 if even just > 10% certainty
-        '''
+        # '''
 
         # Count the number of examples in this batch
         for i in range(0, NUM_LABELS):
