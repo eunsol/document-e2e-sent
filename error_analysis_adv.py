@@ -6,7 +6,7 @@ import json
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 10
+epochs = 5
 EMBEDDING_DIM = 50
 MAX_CO_OCCURS = 10
 HIDDEN_DIM = EMBEDDING_DIM
@@ -106,6 +106,8 @@ def main():
         (holders, holder_lengths) = batch.holder_index
         (targets, target_lengths) = batch.target_index
         co_occur_feature = batch.co_occurrences
+        holder_rank, target_rank = batch.holder_rank, batch.target_rank
+
         docid = batch.docid
         # Step 1. Remember that Pytorch accumulates gradients.
         # We need to clear them out before each instance
@@ -114,16 +116,17 @@ def main():
         # Step 3. Run our forward pass.
         log_probs = model(words, polarity, holder_target, lengths,
                           holders, targets, holder_lengths, target_lengths,
-                          co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
-#        pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
-
+                          co_occur_feature=co_occur_feature,
+                          holder_rank=holder_rank, target_rank=target_rank)  # log probs: batch_size x 3
+        pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
+        '''
         pred_label = torch.ones(len(log_probs), dtype=torch.long)
         if using_GPU:
             pred_label = pred_label.cuda()
         pred_label[log_probs[:, 2] + 0.02 > log_probs[:, 0]] = 2  # classify more as positive
         pred_label[log_probs[:, 0] > log_probs[:, 2] + 0.02] = 0
         pred_label[log_probs[:, 1] > threshold[1]] = 1  # predict is 1 if even just > 10% certainty
-
+        '''
         if int(pred_label) != -1:
             prob = torch.exp(log_probs)
             probs.append(prob[0].data.cpu().numpy().tolist())
@@ -146,11 +149,11 @@ def main():
     print(probs)
     print(preds)
     print(acts)
-    with open("./error_analysis/added_mention_features/wrong_docs_thresholds.json", "w") as wf:
+    with open("./error_analysis/final/wrong_docs_dev.json", "w") as wf:
         for line in texts:
             json.dump(line, wf)
             wf.write("\n")
-    with open("./error_analysis/added_mention_features/right_docs_mpqa_thresholds.json", "w") as wf:
+    with open("./error_analysis/final/right_docs_dev.json", "w") as wf:
         for line in right_texts:
             json.dump(line, wf)
             wf.write("\n")
