@@ -107,6 +107,10 @@ class Model1(nn.Module):
         self.target_FFNN = FeedForward(input_dim=3 * 2 * hidden_dim, num_layers=2, hidden_dims=[hidden_dim, 1],
                                        activations=nn.ReLU())
 
+        # FFNN for attention to each pair
+        self.pair_attention = FeedForward(input_dim=12 * hidden_dim, num_layers=2, hidden_dims=[hidden_dim, 1],
+                                          activations=nn.ReLU())
+
         # Scoring pairwise sentiment: linear score approach
         '''
         self.pairwise_sentiment_score = FeedForward(input_dim=15 * hidden_dim, num_layers=2,
@@ -224,8 +228,12 @@ class Model1(nn.Module):
 
         # Shape: (b, h * t, 3)
         pairwise_scores = self.pairwise_sentiment_score(all_pairs)
+        # Shape: (b, h * t, 1)
+        pair_weights = self.pair_attention(all_pairs)
+        # Shape: (b, h * t, 3)
+        output = torch.mul(pair_weights, pairwise_scores)
         # Shape: (b, 3)
-        output = aggregate_mentions(pairwise_scores, dim=1)
+        output = torch.sum(output, dim=1)
         log_probs = F.log_softmax(output, dim=1)  # Shape: b x 3
         # '''
 
