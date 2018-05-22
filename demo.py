@@ -1,119 +1,139 @@
-import torch
-import data_processor as parser
-from allennlp.modules.span_extractors import SelfAttentiveSpanExtractor, EndpointSpanExtractor
-import advanced_model_1
-from advanced_model_1 import Model
 import json
-import argparse
 
-NUM_LABELS = 3
-# convention: [NEG, NULL, POS]
-epochs = 10
-EMBEDDING_DIM = 50
-MAX_CO_OCCURS = 10
-HIDDEN_DIM = EMBEDDING_DIM
-NUM_POLARITIES = 6
-DROPOUT_RATE = 0.2
-using_GPU = torch.cuda.is_available()
-threshold = torch.log(torch.FloatTensor([0.5, 0.2, 0.5]))
-if using_GPU:
-    threshold = threshold.cuda()
+def make_key(holder_inds, target_inds):
+    key = ""
+    key += str(holder_inds) + "; "
+    key += str(target_inds)
+    return key
 
-set_name = "F"
-datasets = {"A": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([0.8, 1.825, 1]),
-                  "batch": 10},
-            "B": {"filepath": "./data/new_annot/trainsplit_holdtarg",
-                  "filenames": ["train.json", "dev.json", "test.json"],
-                  "weights": torch.FloatTensor([0.77, 1.766, 1]),
-                  "batch": 10},
-            "C": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.07, 1.26]),
-                  "batch": 50},
-            "D": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["acl_dev_tune_new.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([2.7, 0.1, 1]),
-                  "batch": 10},
-            "E": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["E_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.3523, 1.0055]),
-                  "batch": 25},
-            "F": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
-                  "batch": 80},
-            "G": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["G_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1.823, 0.0699, 1.0055]),
-                  "batch": 100},
-            "H": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["H_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.054566, 1.0055]),
-                  "batch": 100},
-            "I": {"filepath": "./data/new_annot/mpqa_split",
-                  "filenames": ["train.json", "dev.json", "test.json"],
-                  "weights": torch.FloatTensor([1.3745, 0.077, 1]),
-                  "batch": 50}
-            }
-
-BATCH_SIZE = 1
-
-type_prior_polarity_to_polarity = {('strongsubj', 'negative'):"strongneg",
-                                  ('weaksubj', 'negative'):"weakneg",
-                                  ('weaksubj', 'neutral'):"neutral",
-                                  ('strongsubj', 'neutral'):"neutral",
-                                  ('weaksubj', 'positive'):"weakpos",
-                                  ('strongsubj', 'positive'):"strongpos"
-                                   }
-
-word_to_polarity = {}
-with open("./resources/subjclueslen1-HLTEMNLP05.tff", 'r') as f:
+def convert_to_str(list):
+    str = ""
     i = 0
-    for line in f:
-        word_line = line.split()
-        word = (word_line[2].split("="))[1]
-        type_ = (word_line[0].split("="))[1]
-        prior_polarity = (word_line[5].split("="))[1]
-        # ignore "both"
-        if prior_polarity == "both":
-            continue
-        polarity = type_prior_polarity_to_polarity[(type_, prior_polarity)]
-        word_to_polarity[word] = polarity
+    for token in list:
+        if token is not "'" and token is not "." and token is not "\"\"" and token is not "," and token is not "''":
+            str += " " + token
+        else:
+            str += token
+        i += 1
+    return str
 
-def decode(word_indices, ix_to_word):
-    words = [ix_to_word[index] for index in word_indices.data[0]]
-    return words
-
-def encode(word_indices, word_to_ix):
-    indices = [word_to_ix[word] for word in word_indices.data[0]]
-    return indices
-
-def get_polarity(words, polarity_to_ix):
-    polarities = [polarity_to_ix[word_to_polarity[word]] for word in words.data[0]]
-    return polarities
-
-def get_holders():
+def convert_to_list(str):
+    str = str[1:len(str) - 1]
+    list = []
+    element = ""
+    for char in str:
+        if char == ",":
+            list.append(element)
+            element = ""
+        elif char != " ":
+            element += char
+    list.append(element)
+    return list
 
 
+docs_to_data = {}
+docs_to_num_right_wrong = {}
+
+with open("./error_analysis/final/right_docs_mpqa.json", "r", encoding="latin1") as rf:
+    for line in rf:
+        annot = json.loads(line)
+        if annot["docid"] not in docs_to_data:
+            docs_to_data[annot["docid"]] = []
+            docs_to_num_right_wrong[annot["docid"]] = {"right": 0, "wrong": 0}
+        docs_to_data[annot["docid"]].append(annot)
+        docs_to_num_right_wrong[annot["docid"]]["right"] += 1
+
+with open("./error_analysis/final/wrong_docs_mpqa.json", "r", encoding="latin1") as rf:
+    for line in rf:
+        annot = json.loads(line)
+        if annot["docid"] not in docs_to_data:
+            docs_to_data[annot["docid"]] = []
+            docs_to_num_right_wrong[annot["docid"]] = {"right": 0, "wrong": 0}
+        docs_to_data[annot["docid"]].append(annot)
+        docs_to_num_right_wrong[annot["docid"]]["wrong"] += 1
+
+doc_to_ht_to_preds = {}
+doc_to_ht_to_acts = {}
+
+for doc in docs_to_data:
+    annots = docs_to_data[doc]
+    for annot in annots:
+        ht_key = make_key(annot["holders"], annot["targets"])
+        probs = str(annot["probabilities"])
+        doc_to_ht_to_preds[ht_key] = probs
+        doc_to_ht_to_acts[ht_key] = annot["actual"]
+
+docs_to_use = []
+for doc in sorted(docs_to_num_right_wrong.items(), key=lambda x: x[1]["wrong"], reverse=False):
+    docs_to_use.append(doc)
+    if len(docs_to_use) > 10:
+        break
+
+doc_to_ht_to_annot = {}
+doc_to_entity = {}
+with open("./data/new_annot/none/mpqa_new.json", "r", encoding="latin1") as rf:
+    for line in rf:
+        annot = json.loads(line)
+        docid = annot["docid"]
+        if docid not in doc_to_ht_to_annot:
+            doc_to_ht_to_annot[docid] = {}
+            doc_to_entity[docid] = {}
+        ht_key = make_key(annot["holder_index"], annot["target_index"])
+        if ht_key not in doc_to_ht_to_annot[docid]:
+            doc_to_ht_to_annot[docid][ht_key] = annot
+
+        holder = str(annot["holder"])
+        if holder not in doc_to_entity[docid]:
+            doc_to_entity[docid][holder] = annot["holder_index"]
+        target = str(annot["target"])
+        if target not in doc_to_entity[docid]:
+            doc_to_entity[docid][target] = annot["target_index"]
+
+text_to_docid = {}
+text_to_ht_to_pred = {}
+text_to_ht_to_acts = {}
+text_to_entity = {}
+texts_ht_preds = []
+for doc in docs_to_use:
+    docid = doc[0]
+    ht_to_annot = doc_to_ht_to_annot[docid]
+    for ht in ht_to_annot:
+        pred = doc_to_ht_to_preds[ht]
+        act = doc_to_ht_to_acts[ht]
+        token = doc_to_ht_to_annot[docid][ht]["token"]
+        holder = doc_to_ht_to_annot[docid][ht]["holder"]
+        target = doc_to_ht_to_annot[docid][ht]["target"]
+        text = convert_to_str(token)
+        if text not in text_to_ht_to_pred:
+            text_to_ht_to_pred[text] = {}
+            text_to_ht_to_acts[text] = {}
+            text_to_entity[text] = doc_to_entity[docid]
+            text_to_docid[text] = docid
+        text_to_ht_to_pred[text][str(holder) + " -> " + str(target)] = pred
+        text_to_ht_to_acts[text][str(holder) + " -> " + str(target)] = act
+
+
+#  '21.53.09-11428': {'right': 207, 'wrong': 33}
+#  '20.46.47-22286': {'right': 307, 'wrong': 35}
 def main():
-    model, TEXT = advanced_model_1.main()
-
+    print(docs_to_use)
     print()
-    text = input("What is your text? ")
-    holder_indices = input("What indices are your holders at? ")
-    target_indices = input("What indices are your targets at? ")
+    for text in text_to_ht_to_pred:
+        print(text_to_docid[text])
+        print(text)
+        print(text_to_entity[text])
+        ht_to_pred = text_to_ht_to_pred[text]
+        for ht in ht_to_pred:
+            pred_label = 0
+            prob_list = convert_to_list(ht_to_pred[ht])
+            for i in range(3):
+                if float(prob_list[i]) > float(prob_list[pred_label]):
+                    pred_label = i
+            act_label = text_to_ht_to_acts[text][ht]
+            if act_label != 1 or pred_label != 1:
+                print("    " + str(ht) + ": " + str(pred_label) + " " + str(act_label))
+        print()
 
-    words = torch.LongTensor(encode(text, TEXT.vocab.stoi()))
-    model.batch_size = 1
-
-    model.eval()
-
-    log_probs = model(words, polarity, lengths=len(text),
-                    holders, targets, holder_lengths=len(holder_indices), target_lengths=len(target_indices),
-                    co_occur_feature=co_occur_feature)  # log probs: batch_size x 3
-    print(log_probs)
 
 if __name__ == "__main__":
     main()
