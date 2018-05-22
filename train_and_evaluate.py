@@ -29,7 +29,7 @@ if using_GPU:
     threshold = threshold.cuda()
 MODEL = Model1
 
-set_name = "F"
+set_name = "I"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -178,6 +178,7 @@ def train(Xtrain, Xdev, Xtest,
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
+        torch.save(model.state_dict(), "./model_states/mpqa_split/adv_" + set_name + "_" + str(epochs) + ".pt")
     print("dev losses:")
     print(dev_loss_epoch)
     return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, train_loss_epoch, best_epoch
@@ -360,7 +361,7 @@ def main():
     print("    " + str(test_a[best_epoch]))
 
     print("saving model...")
-    torch.save(model.state_dict(), "./model_states/adv_" + set_name + "_" + str(epochs) + ".pt")
+    torch.save(model.state_dict(), "./model_states/mpqa_split/adv_" + set_name + "_" + str(epochs) + ".pt")
 
     return model, TEXT, POLARITY
 
