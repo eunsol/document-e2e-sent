@@ -1,10 +1,12 @@
 import json
 
+
 def make_key(holder_inds, target_inds):
     key = ""
     key += str(holder_inds) + "; "
     key += str(target_inds)
     return key
+
 
 def convert_to_str(list):
     str = ""
@@ -16,6 +18,7 @@ def convert_to_str(list):
             str += token
         i += 1
     return str
+
 
 def convert_to_list(str):
     str = str[1:len(str) - 1]
@@ -34,23 +37,25 @@ def convert_to_list(str):
 docs_to_data = {}
 docs_to_num_right_wrong = {}
 
-with open("./error_analysis/final/right_docs_mpqa.json", "r", encoding="latin1") as rf:
+with open("./error_analysis/final/right_docs_dev.json", "r", encoding="latin1") as rf:
     for line in rf:
         annot = json.loads(line)
         if annot["docid"] not in docs_to_data:
             docs_to_data[annot["docid"]] = []
             docs_to_num_right_wrong[annot["docid"]] = {"right": 0, "wrong": 0}
         docs_to_data[annot["docid"]].append(annot)
-        docs_to_num_right_wrong[annot["docid"]]["right"] += 1
+        if annot["actual"] != 1:
+            docs_to_num_right_wrong[annot["docid"]]["right"] += 1
 
-with open("./error_analysis/final/wrong_docs_mpqa.json", "r", encoding="latin1") as rf:
+with open("./error_analysis/final/wrong_docs_dev.json", "r", encoding="latin1") as rf:
     for line in rf:
         annot = json.loads(line)
         if annot["docid"] not in docs_to_data:
             docs_to_data[annot["docid"]] = []
             docs_to_num_right_wrong[annot["docid"]] = {"right": 0, "wrong": 0}
         docs_to_data[annot["docid"]].append(annot)
-        docs_to_num_right_wrong[annot["docid"]]["wrong"] += 1
+        if annot["actual"] != 1:
+            docs_to_num_right_wrong[annot["docid"]]["wrong"] += 1
 
 doc_to_ht_to_preds = {}
 doc_to_ht_to_acts = {}
@@ -66,12 +71,12 @@ for doc in docs_to_data:
 docs_to_use = []
 for doc in sorted(docs_to_num_right_wrong.items(), key=lambda x: x[1]["wrong"], reverse=False):
     docs_to_use.append(doc)
-    if len(docs_to_use) > 10:
+    if len(docs_to_use) > 30:
         break
 
 doc_to_ht_to_annot = {}
 doc_to_entity = {}
-with open("./data/new_annot/none/mpqa_new.json", "r", encoding="latin1") as rf:
+with open("./data/new_annot/none/acl_dev_eval_new.json", "r", encoding="latin1") as rf:
     for line in rf:
         annot = json.loads(line)
         docid = annot["docid"]
@@ -101,6 +106,11 @@ for doc in docs_to_use:
         pred = doc_to_ht_to_preds[ht]
         act = doc_to_ht_to_acts[ht]
         token = doc_to_ht_to_annot[docid][ht]["token"]
+        if docid == "AFP_ENG_20101123.0339":
+            for entity in doc_to_entity[docid]:
+                for indices in doc_to_entity[docid][entity]:
+                    token[indices[0]] = "{" + token[indices[0]]
+                    token[indices[1]] = token[indices[0]] + "}_" + str(entity)
         holder = doc_to_ht_to_annot[docid][ht]["holder"]
         target = doc_to_ht_to_annot[docid][ht]["target"]
         text = convert_to_str(token)
@@ -109,12 +119,15 @@ for doc in docs_to_use:
             text_to_ht_to_acts[text] = {}
             text_to_entity[text] = doc_to_entity[docid]
             text_to_docid[text] = docid
-        text_to_ht_to_pred[text][str(holder) + " -> " + str(target)] = pred
-        text_to_ht_to_acts[text][str(holder) + " -> " + str(target)] = act
+        text_to_ht_to_pred[text]["(\"" + str(holder) + "\", \"" + str(target) + "\")"] = pred
+        text_to_ht_to_acts[text]["(\"" + str(holder) + "\", \"" + str(target) + "\")"] = act
 
 
-#  '21.53.09-11428': {'right': 207, 'wrong': 33}
-#  '20.46.47-22286': {'right': 307, 'wrong': 35}
+# AFP_ENG_20101123.0339
+# AFP_ENG_20100322.0387
+# APW_ENG_20090729.0699
+# XIN_ENG_20100125.0144
+# XIN_ENG_20090902.0333
 def main():
     print(docs_to_use)
     print()
@@ -130,8 +143,9 @@ def main():
                 if float(prob_list[i]) > float(prob_list[pred_label]):
                     pred_label = i
             act_label = text_to_ht_to_acts[text][ht]
-            if act_label != 1 or pred_label != 1:
-                print("    " + str(ht) + ": " + str(pred_label) + " " + str(act_label))
+            if pred_label != 1:
+                print("    " + str(ht) + ", ")  # + ": " + str(prob_list) + " " + str(pred_label) + " " + str(act_label))
+
         print()
 
 

@@ -12,7 +12,7 @@ right_filenames = ["./error_analysis/right_docs_has_1s.json", "./error_analysis/
 docs_file = ["./data/new_annot/feature/acl_dev_eval_new.json", "./data/new_annot/feature/mpqa_new.json",
              "./data/new_annot/feature/acl_dev_eval_new.json", "./data/new_annot/feature/mpqa_new.json",
              "./data/new_annot/feature/acl_test_new.json"]
-file = 4
+file = 0
 
 
 def make_key(holder_inds, target_inds):
@@ -121,8 +121,6 @@ for doc in docs_to_labels:
         docs_to_label_counts[doc]["acts"][act_label] += 1
     for pred_label in docs_to_labels[doc]["pred"]:
         docs_to_label_counts[doc]["pred"][pred_label] += 1
-
-print(docs_to_label_counts)
 
 
 def analyze_probabilities():  # for thresholds
@@ -312,11 +310,6 @@ def analyze_num_mentions(list1):
         print([mentions_label[i].count(j) / num_mentions_label[i] for i in range(3)])
 
 
-analyze_num_mentions(ex_to_label)
-print()
-analyze_num_mentions(ex_to_pred)
-
-
 def ave_same_sentence_features(exs):
     co_occurs = [0, 0, 0, 0, 0, 0, 0, 0, 0]
     for ex in exs:
@@ -329,21 +322,6 @@ def ave_same_sentence_features(exs):
         ave_co_occurs += (i + 1) * co_occurs[i]
     ave_co_occurs /= sum(co_occurs)
     return ave_co_occurs
-
-
-'''
-print(ave_same_sentence_features(is_0_pred_0))
-print(ave_same_sentence_features(is_0_pred_1))
-print(ave_same_sentence_features(is_0_pred_2))
-
-print(ave_same_sentence_features(is_1_pred_0))
-print(ave_same_sentence_features(is_1_pred_1))
-print(ave_same_sentence_features(is_1_pred_2))
-
-print(ave_same_sentence_features(is_2_pred_0))
-print(ave_same_sentence_features(is_2_pred_1))
-print(ave_same_sentence_features(is_2_pred_2))
-'''
 
 
 def ave_rank_features(exs):
@@ -366,19 +344,6 @@ def ave_rank_features(exs):
     ave_target_rank = sum(target_rank_distr) / len(target_rank_distr)
     return ave_holder_rank, ave_target_rank
 
-'''
-print(ave_rank_features(is_0_pred_0))
-print(ave_rank_features(is_0_pred_1))
-print(ave_rank_features(is_0_pred_2))
-
-print(ave_rank_features(is_1_pred_0))
-print(ave_rank_features(is_1_pred_1))
-print(ave_rank_features(is_1_pred_2))
-
-print(ave_rank_features(is_2_pred_0))
-print(ave_rank_features(is_2_pred_1))
-print(ave_rank_features(is_2_pred_2))
-'''
 
 def save_examples(exs, filename, condense_factor):
     all_exs = []
@@ -416,10 +381,6 @@ def save_examples(exs, filename, condense_factor):
     print(str(docid) + " " + str(holder) + "," + str(holder2) + "      " + str(target) + "," + str(target2))
     '''
 
-#  save_examples(is_0_pred_1, "./error_analysis/acl_guessed_0_is_1_condense.txt", 1)
-#  save_examples(is_1_pred_2, "./error_analysis/mpqa_guessed_2_is_1_condense.txt", 0.09)
-#  save_examples(is_2_pred_1, "./error_analysis/acl_guessed_2_is_1_condense.txt", 0.5)
-
 
 pairs_to_labels_train = {}
 with open("./data/new_annot/feature/F_train.json", "r") as rf:
@@ -433,8 +394,6 @@ with open("./data/new_annot/feature/F_train.json", "r") as rf:
         pairs_to_labels_train[ht_key].append(line["label"])
         pairs_to_labels_train[ht_key_reversed].append(line["label"])
 
-#  doc_to_entinds_to_entnames
-#  ex_to_pred
 
 def pairs_classified():
     pairs_to_labels = {}
@@ -445,6 +404,8 @@ def pairs_classified():
         pred = doc_to_pairinds_to_preds[ex_map["docid"]][ht_inds_key]
         pair_key = ex_map["holder"] + "; " + ex_map["target"]
         pair_key_reversed = ex_map["target"] + "; " + ex_map["holder"]
+        pair_key = pair_key.lower()
+        pair_key_reversed = pair_key_reversed.lower()
         if pair_key not in pairs_to_labels:
             pairs_to_labels[pair_key] = {"actual": [], "pred": []}
             pairs_to_labels[pair_key_reversed] = {"actual": [], "pred": []}
@@ -515,9 +476,6 @@ def pairs_classified():
     print("# of uniform pairs predicted the wrong way = " + str(num_uniform_diff_pred))  # [num_uniform_diff_pred[i] / sum(num_uniform_diff_pred) for i in range(len(num_uniform_diff))]))
     print("# of uniform pairs predicted non-uniform = " + str(num_non_uniform))  # [num_non_uniform[i] / sum(num_non_uniform) for i in range(len(num_non_uniform))]))
 
-
-# pairs_classified()
-print()
 
 def count_num_mentions(filename):
     holder_lens = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -597,9 +555,57 @@ def count_num_mentions(filename):
     # print([holder_lens[i] / sum(holder_lens) for i in range(len(holder_lens))])
     # print([target_lens[i] / sum(target_lens) for i in range(len(target_lens))])
 
-'''
-count_num_mentions("./data/new_annot/feature/mpqa_new.json")
-#  count_num_mentions("./data/new_annot/feature/new_train.json")
-count_num_mentions("./data/new_annot/feature/F_train.json")
-count_num_mentions("./data/new_annot/feature/acl_dev_eval_new.json")
-'''
+
+def main():
+    #'APW_ENG_20100521.0054': {'acts': [0, 79, 11]
+    # 'XIN_ENG_20100915.0131': {'acts': [0, 37, 5], 'pred': [1, 13, 28]}
+    print(docs_to_label_counts)
+    '''
+    print(ave_same_sentence_features(is_0_pred_0))
+    print(ave_same_sentence_features(is_0_pred_1))
+    print(ave_same_sentence_features(is_0_pred_2))
+
+    print(ave_same_sentence_features(is_1_pred_0))
+    print(ave_same_sentence_features(is_1_pred_1))
+    print(ave_same_sentence_features(is_1_pred_2))
+
+    print(ave_same_sentence_features(is_2_pred_0))
+    print(ave_same_sentence_features(is_2_pred_1))
+    print(ave_same_sentence_features(is_2_pred_2))
+    '''
+    '''
+    print(ave_rank_features(is_0_pred_0))
+    print(ave_rank_features(is_0_pred_1))
+    print(ave_rank_features(is_0_pred_2))
+
+    print(ave_rank_features(is_1_pred_0))
+    print(ave_rank_features(is_1_pred_1))
+    print(ave_rank_features(is_1_pred_2))
+
+    print(ave_rank_features(is_2_pred_0))
+    print(ave_rank_features(is_2_pred_1))
+    print(ave_rank_features(is_2_pred_2))
+    '''
+    '''
+    print("num mentions")
+    analyze_num_mentions(ex_to_label)
+    print()
+    analyze_num_mentions(ex_to_pred)
+    print()
+    '''
+    #  save_examples(is_0_pred_1, "./error_analysis/acl_guessed_0_is_1_condense.txt", 1)
+    #  save_examples(is_1_pred_2, "./error_analysis/mpqa_guessed_2_is_1_condense.txt", 0.09)
+    #  save_examples(is_2_pred_1, "./error_analysis/acl_guessed_2_is_1_condense.txt", 0.5)
+    pairs_classified()
+    print()
+    '''
+    count_num_mentions("./data/new_annot/feature/mpqa_new.json")
+    #  count_num_mentions("./data/new_annot/feature/new_train.json")
+    count_num_mentions("./data/new_annot/feature/F_train.json")
+    count_num_mentions("./data/new_annot/feature/acl_dev_eval_new.json")
+    '''
+
+
+if __name__ == "__main__":
+    main()
+
