@@ -79,6 +79,7 @@ class Model1(nn.Module):
         self.min_mention_embeds = nn.Embedding(num_mentions_cats, embeddings_size)
         self.holder_rank_embeds = nn.Embedding(5, embeddings_size)
         self.target_rank_embeds = nn.Embedding(5, embeddings_size)
+        self.sent_classify_embeds = nn.Embedding(num_labels, embeddings_size)
 
         # The LSTM takes [word embeddings, feature embeddings, holder/target embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
@@ -117,13 +118,13 @@ class Model1(nn.Module):
                                                     hidden_dims=[hidden_dim, num_labels],
                                                     activations=nn.ReLU())
         '''
-        self.final_sentiment_score = nn.Linear(in_features=9 * hidden_dim, out_features=num_labels)
+        self.final_sentiment_score = nn.Linear(in_features=10 * hidden_dim, out_features=num_labels)
         #  self.pairwise_sentiment_score = nn.Linear(in_features=12 * hidden_dim, out_features=num_labels)
         # '''
 
     def forward(self, word_vec, feature_vec, holder_target_vec, lengths=None,
                 holder_inds=None, target_inds=None, holder_lengths=None, target_lengths=None,
-                co_occur_feature=None, holder_rank=None, target_rank=None):
+                co_occur_feature=None, holder_rank=None, target_rank=None, sent_classify=None):
         # Apply embeddings & prepare input
         word_embeds_vec = self.word_embeds(word_vec)
         feature_embeds_vec = self.polarity_embeds(feature_vec)
@@ -223,8 +224,11 @@ class Model1(nn.Module):
         holder_rank_vec = self.holder_rank_embeds(holder_rank)
         target_rank_vec = self.target_rank_embeds(target_rank)
 
+        sent_classify_vec = self.sent_classify_embeds(sent_classify)
+
         # Shape: (batch_size, 3 * hidden_dim + 2 * hidden_dim)
-        final_rep = torch.cat([pairwise_scores, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec, holder_rank_vec, target_rank_vec], dim=-1)
+        final_rep = torch.cat([pairwise_scores, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec,
+                               holder_rank_vec, target_rank_vec, sent_classify_vec], dim=-1)
         final_rep = self.dropout(final_rep)  # dropout
 
         output = self.final_sentiment_score(final_rep)

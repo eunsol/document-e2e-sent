@@ -29,7 +29,7 @@ if using_GPU:
     threshold = threshold.cuda()
 MODEL = Model1
 
-set_name = "F"
+set_name = "has_co_occurs"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -65,7 +65,15 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
             "I": {"filepath": "./data/new_annot/mpqa_split",
                   "filenames": ["train.json", "dev.json", "test.json"],
                   "weights": torch.FloatTensor([1.3745, 0.077, 1]),
-                  "batch": 50}
+                  "batch": 50},
+            "has_co_occurs": {"filepath": "./data/has_co_occurs",
+                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
+                  "batch": 80},
+            "no_co_occurs": {"filepath": "./data/no_co_occurs",
+                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
+                  "batch": 80}
             }
 
 BATCH_SIZE = datasets[set_name]["batch"]
@@ -124,6 +132,7 @@ def train(Xtrain, Xdev, Xtest,
             (targets, target_lengths) = batch.target_index
             co_occur_feature = batch.co_occurrences
             holder_rank, target_rank = batch.holder_rank, batch.target_rank
+            sent_classify = batch.sent_classify
 
             # Step 1. Remember that Pytorch accumulates gradients.
             # We need to clear them out before each instance
@@ -134,7 +143,8 @@ def train(Xtrain, Xdev, Xtest,
             log_probs = model(words, polarity, holder_target, lengths,
                               holders, targets, holder_lengths, target_lengths,
                               co_occur_feature=co_occur_feature,
-                              holder_rank=holder_rank, target_rank=target_rank)  # log probs: batch_size x 3
+                              holder_rank=holder_rank, target_rank=target_rank,
+                              sent_classify=sent_classify)  # log probs: batch_size x 3
 
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
@@ -178,6 +188,8 @@ def train(Xtrain, Xdev, Xtest,
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
+
+        torch.save(model.state_dict(), "./model_states/" + set_name + "/adv_" + str(epochs) + ".pt")
     print("dev losses:")
     print(dev_loss_epoch)
     return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, train_loss_epoch, best_epoch
@@ -212,6 +224,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
         (targets, target_lengths) = batch.target_index
         co_occur_feature = batch.co_occurrences
         holder_rank, target_rank = batch.holder_rank, batch.target_rank
+        sent_classify = batch.sent_classify
 
         # words.no_grad() = lengths.no_grad() = polarity.no_grad() = label.no_grad() = True
         # holders.no_grad() = targets.no_grad() = holder_lengths.no_grad() = target_lengths.no_grad() = True
@@ -224,7 +237,8 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
         log_probs = model(words, polarity, holder_target, lengths,
                           holders, targets, holder_lengths, target_lengths,
                           co_occur_feature=co_occur_feature,
-                          holder_rank=holder_rank, target_rank=target_rank)  # log probs: batch_size x 3
+                          holder_rank=holder_rank, target_rank=target_rank,
+                          sent_classify=sent_classify)  # log probs: batch_size x 3
         if losses is not None:
             loss = loss_fxn(log_probs, label)
             loss_this_batch.append(float(loss))
@@ -360,7 +374,7 @@ def main():
     print("    " + str(test_a[best_epoch]))
 
     print("saving model...")
-    torch.save(model.state_dict(), "./model_states/adv_" + set_name + "_" + str(epochs) + ".pt")
+    torch.save(model.state_dict(), "./model_states/" + set_name + "/adv_" + str(epochs) + ".pt")
 
     return model, TEXT, POLARITY
 

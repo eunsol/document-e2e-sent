@@ -51,9 +51,11 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     T_IND = data.Field(sequential=True, use_vocab=False, batch_first=True, postprocessing=Pipeline(custom_post_inds),
                        include_lengths=True)
 
+    # features
     CO_OCCURRENCES = data.Field(sequential=False, use_vocab=False, batch_first=True)
     HOLDER_RANK = data.Field(sequential=False, use_vocab=False, batch_first=True)
     TARGET_RANK = data.Field(sequential=False, use_vocab=False, batch_first=True)
+    SENT_CLASSIFY = data.Field(sequential=False, use_vocab=False, batch_first=True)
 
     data_fields = {'token': ('text', TEXT), 'label': ('label', LABEL),
                    #'holder': ('holder', HOLDER), 'target': ('target', TARGET),
@@ -61,7 +63,8 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
                    'docid': ('docid', DOCID),
                    'holder_index': ('holder_index', H_IND), 'target_index': ('target_index', T_IND),
                    'co_occurrences': ('co_occurrences', CO_OCCURRENCES),
-                   'holder_rank': ('holder_rank', HOLDER_RANK), 'target_rank': ('target_rank', TARGET_RANK)}
+                   'holder_rank': ('holder_rank', HOLDER_RANK), 'target_rank': ('target_rank', TARGET_RANK),
+                   'classify': ('sent_classify', SENT_CLASSIFY)}
     if has_holdtarg:
         data_fields['holder_target'] = ('holder_target', HOLDER_TARGET)
 
