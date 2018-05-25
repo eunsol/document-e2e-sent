@@ -188,7 +188,6 @@ def train(Xtrain, Xdev, Xtest,
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
-
         torch.save(model.state_dict(), "./model_states/" + set_name + "/adv_" + str(epochs) + ".pt")
     print("dev losses:")
     print(dev_loss_epoch)
