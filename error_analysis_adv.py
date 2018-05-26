@@ -17,7 +17,7 @@ threshold = torch.log(torch.FloatTensor([0.5, 0.1, 0.5]))
 if using_GPU:
     threshold = threshold.cuda()
 
-set_name = "F"
+set_name = "no_co_occurs"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -39,7 +39,7 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "weights": torch.FloatTensor([1, 0.3523, 1.0055]),
                   "batch": 25},
             "F": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "mpqa_new.json"],
+                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
                   "batch": 80},
             "G": {"filepath": "./data/new_annot/feature",
@@ -53,7 +53,15 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
             "I": {"filepath": "./data/new_annot/mpqa_split",
                   "filenames": ["train.json", "dev.json", "test.json"],
                   "weights": torch.FloatTensor([1.3745, 0.077, 1]),
-                  "batch": 50}
+                  "batch": 50},
+            "has_co_occurs": {"filepath": "./data/has_co_occurs",
+                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
+                  "batch": 80},
+            "no_co_occurs": {"filepath": "./data/no_co_occurs",
+                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
+                  "batch": 80}
             }
 
 BATCH_SIZE = 1
@@ -86,7 +94,7 @@ def main():
 
     print("num params = ")
     print(len(model.state_dict()))
-    model.load_state_dict(torch.load("./model_states/adv_" + set_name + "_" + str(epochs) + "_mpqa.pt"))
+    model.load_state_dict(torch.load("./model_states/" + set_name + "/adv_" + str(epochs) + ".pt"))
     model.eval()
 
     # Move the model to the GPU if available
@@ -149,11 +157,11 @@ def main():
     print(probs)
     print(preds)
     print(acts)
-    with open("./error_analysis/final/wrong_docs_dev.json", "w") as wf:
+    with open("./error_analysis/" + set_name + "/wrong_docs_dev.json", "w") as wf:
         for line in texts:
             json.dump(line, wf)
             wf.write("\n")
-    with open("./error_analysis/final/right_docs_dev.json", "w") as wf:
+    with open("./error_analysis/" + set_name + "/right_docs_dev.json", "w") as wf:
         for line in right_texts:
             json.dump(line, wf)
             wf.write("\n")
