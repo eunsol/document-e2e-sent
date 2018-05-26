@@ -29,7 +29,7 @@ if using_GPU:
     threshold = threshold.cuda()
 MODEL = Model1
 
-set_name = "has_co_occurs"
+set_name = "no_co_occurs"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -68,11 +68,11 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "batch": 50},
             "has_co_occurs": {"filepath": "./data/has_co_occurs",
                   "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
+                  "weights": torch.FloatTensor([1.06656, 0.13078, 1]),
                   "batch": 80},
             "no_co_occurs": {"filepath": "./data/no_co_occurs",
                   "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
+                  "weights": torch.FloatTensor([1, 0.02429, 1.206897]),
                   "batch": 80}
             }
 
@@ -188,7 +188,7 @@ def train(Xtrain, Xdev, Xtest,
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
-        torch.save(model.state_dict(), "./model_states/" + set_name + "/adv_" + str(epochs) + ".pt")
+        torch.save(model.state_dict(), "./model_states/" + set_name + "/adv_" + str(epoch) + ".pt")
     print("dev losses:")
     print(dev_loss_epoch)
     return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, train_loss_epoch, best_epoch
