@@ -6,7 +6,7 @@ import json
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 5
+epochs = 10
 EMBEDDING_DIM = 50
 MAX_CO_OCCURS = 10
 HIDDEN_DIM = EMBEDDING_DIM
@@ -115,6 +115,7 @@ def main():
         (targets, target_lengths) = batch.target_index
         co_occur_feature = batch.co_occurrences
         holder_rank, target_rank = batch.holder_rank, batch.target_rank
+        sent_classify = batch.sent_classify
 
         docid = batch.docid
         # Step 1. Remember that Pytorch accumulates gradients.
@@ -125,7 +126,8 @@ def main():
         log_probs = model(words, polarity, holder_target, lengths,
                           holders, targets, holder_lengths, target_lengths,
                           co_occur_feature=co_occur_feature,
-                          holder_rank=holder_rank, target_rank=target_rank)  # log probs: batch_size x 3
+                          holder_rank=holder_rank, target_rank=target_rank,
+                          sent_classify=sent_classify)  # log probs: batch_size x 3
         pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
         '''
         pred_label = torch.ones(len(log_probs), dtype=torch.long)
