@@ -1,4 +1,5 @@
 import json
+import random
 
 confirm_filepath = "./data/stanford_label_sent_boundary/"
 read_filepath = "./data/new_annot/feature/"
@@ -104,10 +105,9 @@ for i in range(len(read_files)):
         counts = [0, 0, 0]
         for i in range(len(has_both)):
             if has_both[i]:
-                classify = 0
-                if annot["sent_seq"][i] > 3:
+                if annot["sent_seq"][i] > 2:
                     counts[2] += 1
-                elif annot["sent_seq"][i] == 3:
+                elif annot["sent_seq"][i] == 2:
                     counts[1] += 1
                 else:
                     counts[0] += 1
@@ -238,10 +238,9 @@ for i in range(len(read_combine_files)):
         counts = [0, 0, 0]
         for i in range(len(has_both)):
             if has_both[i]:
-                classify = 0
-                if annot["sent_seq"][i] > 3:
+                if annot["sent_seq"][i] > 2:
                     counts[2] += 1
-                elif annot["sent_seq"][i] == 3:
+                elif annot["sent_seq"][i] == 2:
                     counts[1] += 1
                 else:
                     counts[0] += 1
@@ -266,7 +265,7 @@ for i in range(len(read_combine_files)):
             assert doc_to_ht_to_annot[annot["docid"]][ht_key]["sent_boundaries"] == annot["sent_boundaries"]
             assert doc_to_ht_to_annot[annot["docid"]][ht_key]["sent_seq"] == annot["sent_seq"]
             assert annot["co_occurrences"] == doc_to_ht_to_annot[annot["docid"]][ht_key]["co_occurrences"]
-            assert annot["classify"] == doc_to_ht_to_annot[annot["docid"]][ht_key]["classify"]
+            # assert annot["classify"] == doc_to_ht_to_annot[annot["docid"]][ht_key]["classify"]
             print(annot["label"])
             print(doc_to_ht_to_annot[annot["docid"]][ht_key]["label"])
             if annot["label"] != doc_to_ht_to_annot[annot["docid"]][ht_key]["label"]:
@@ -282,18 +281,6 @@ for i in range(len(read_combine_files)):
             # print(str(annot["docid"]) + " " + str(ht_key))
             assert doc_to_ht_to_annot[annot["docid"]][ht_key] == annot
 
-    '''
-    for annot in all_data:
-        print(annot)
-        ht_key = make_key(annot["holder_index"], annot["target_index"])
-        write_annot = doc_to_ht_to_annot[annot["docid"]][ht_key]
-        print(annot)
-        print(write_annot)
-        if write_annot["co_occurrences"] > 0:
-            write_co_occur.append(write_annot)
-        else:
-            write_no_co_occur.append(write_annot)
-    '''
     print(len(all_data))
     print(len(write_co_occur))
     print(len(write_no_co_occur))
@@ -309,5 +296,43 @@ for i in range(len(read_combine_files)):
     # Write non-co-occurring examples to doc
     with open(write_filepath_no + write_file, "w", encoding="latin1") as wf:
         for annot in write_no_co_occur:
+            json.dump(annot, wf)
+            wf.write("\n")
+
+for filename in read_files:
+    print(filename)
+
+    all_data = []
+    with open(write_filepath_yes + filename, "r", encoding="latin1") as cf:
+        for line in cf:
+            annot = json.loads(line)
+            all_data.append(annot)
+    with open(write_filepath_no + filename, "r", encoding="latin1") as cf:
+        for line in cf:
+            annot = json.loads(line)
+            all_data.append(annot)
+
+    random.shuffle(all_data)
+    with open(read_filepath + filename, "w", encoding="latin1") as wf:
+        for annot in all_data:
+            json.dump(annot, wf)
+            wf.write("\n")
+
+for filename in read_combine_files:
+    print(filename)
+
+    all_data = []
+    with open(write_filepath_yes + filename, "r", encoding="latin1") as cf:
+        for line in cf:
+            annot = json.loads(line)
+            all_data.append(annot)
+    with open(write_filepath_no + filename, "r", encoding="latin1") as cf:
+        for line in cf:
+            annot = json.loads(line)
+            all_data.append(annot)
+
+    random.shuffle(all_data)
+    with open(read_filepath + filename, "w", encoding="latin1") as wf:
+        for annot in all_data:
             json.dump(annot, wf)
             wf.write("\n")
