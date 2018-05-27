@@ -35,7 +35,7 @@ test_act_and_pred = [[], []]
 train_preds = [[], []]
 dev_preds = [[], []]
 test_preds = [[], []]
-
+'''
 for f in range(len(filepaths)):
     filepath = filepaths[f]
     print(filepath)
@@ -119,4 +119,53 @@ for i in range(len(total_acts)):
 
     print(total_precision)
     print(total_recall)
+    print(total_f1)
+'''
+filenames = ["acl_dev_eval_new.json", "acl_test_new.json", "mpqa_new.json"]
+
+for fn in filenames:
+    print(fn)
+
+    # Compare with results from just sentence
+    all_correct_data = [[], [], []]
+    all_wrong_data_pred = [[], [], []]
+    all_wrong_data_acts = [[], [], []]
+
+    num_correct_data = [0, 0, 0]
+    num_wrong_data_pred = [0, 0, 0]
+    num_wrong_data_acts = [0, 0, 0]
+    for filepath in filepaths:
+        with open(filepath + fn, "r", encoding="latin1") as rf:
+            for line in rf:
+                annot = json.loads(line)
+                label = annot["label"]
+                pred = annot["classify"]
+                if label == pred:
+                    all_correct_data[label].append(annot)
+                    num_correct_data[label] += 1
+                all_wrong_data_pred[pred].append(annot)
+                all_wrong_data_acts[label].append(annot)
+                num_wrong_data_pred[pred] += 1
+                num_wrong_data_acts[label] += 1
+
+    print(num_correct_data)
+    print(num_wrong_data_pred)
+    print(num_wrong_data_acts)
+
+    precision = [0, 0, 0]
+    recall = [0, 0, 0]
+    total_f1 = [0, 0, 0]
+    for i in range(3):
+        print(i)
+        if len(all_wrong_data_pred[i]) == 0:
+            precision[i] = 0
+        else:
+            precision[i] = len(all_correct_data[i]) / len(all_wrong_data_pred[i])
+        recall[i] = len(all_correct_data[i]) / len(all_wrong_data_acts[i])
+        if precision[i] + recall[i] == 0:
+            total_f1[i] = 0
+        else:
+            total_f1[i] = 2 * precision[i] * recall[i] / (precision[i] + recall[i])
+    print(precision)
+    print(recall)
     print(total_f1)

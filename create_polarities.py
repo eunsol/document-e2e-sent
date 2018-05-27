@@ -23,11 +23,11 @@ with open("./resources/subjclueslen1-HLTEMNLP05.tff", 'r') as f:
         word_to_polarity[word] = polarity
 
 
-all_data = []
-filenames = ["E_train.json", "F_train.json", "G_train.json", "H_train.json"]
+filenames = []# ["acl_dev_eval.json", "acl_dev_tune.json", "acl_mpqa_eval.json", "acl_test.json"]
 for filename in filenames:
+    all_data = []
     print(filename)
-    with open("./data/new_annot/none/" + filename, "r", encoding="latin1") as af:
+    with open("./data/stanford_label_sent_boundary_with_label/" + filename, "r", encoding="latin1") as af:
         for line in af:
             annot = json.loads(line)
             polarity = []
@@ -39,7 +39,7 @@ for filename in filenames:
             annot["polarity"] = polarity
             all_data.append(annot)
 
-    with open("./data/new_annot/polarity/" + filename, "w", encoding="latin1") as wf:
+    with open("./data/" + filename, "w", encoding="latin1") as wf:
         for line in all_data:
             json.dump(line, wf)
             wf.write('\n')

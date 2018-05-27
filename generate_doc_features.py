@@ -1,7 +1,7 @@
 import json
 import random
 
-files = ["new_train.json", "F_train.json", "acl_dev_eval_new.json", "acl_dev_tune_new.json", "acl_test_new.json", "mpqa_new.json"]
+files = []  #["acl_test.json", "acl_dev_eval.json", "acl_dev_tune.json", "acl_mpqa_eval.json"]
 
 for filename in files:
     print(filename)
@@ -10,7 +10,7 @@ for filename in files:
     doc_to_sentences_co_occur = {}
     all_data = []
     
-    with open("./data/new_annot/polarity_label_holdtarg/" + filename, "r", encoding="latin1") as cf:
+    with open("./data/" + filename, "r", encoding="latin1") as cf:
         for line in cf:
             annot = json.loads(line)
             if annot["docid"] not in doc_to_sentences:
@@ -40,16 +40,16 @@ for filename in files:
     doc_to_sentences = {}
     doc_to_sentences_co_occur = {}
     
-    with open("./data/new_annot/feature/" + filename, "w", encoding="latin1") as wf:
+    with open("./data/final/" + filename, "w", encoding="latin1") as wf:
         for annot in all_data:
             json.dump(annot, wf)
             wf.write("\n")
-    '''
+    # '''
 
     all_data = []
     doc_to_entity_to_num_mentions = {}
 
-    with open("./data/new_annot/feature/" + filename, "r", encoding="latin1") as cf:
+    with open("./data/" + filename, "r", encoding="latin1") as cf:
         for line in cf:
             annot = json.loads(line)
             all_data.append(annot)
@@ -115,7 +115,8 @@ for filename in files:
         annot["holder_rank"] = doc_to_entity_to_rank[annot["docid"]][annot["holder"]]
         annot["target_rank"] = doc_to_entity_to_rank[annot["docid"]][annot["target"]]
 
-    with open("./data/new_annot/feature/" + filename, "w", encoding="latin1") as wf:
+    with open("./data/final/" + filename, "w", encoding="latin1") as wf:
         for annot in all_data:
             json.dump(annot, wf)
             wf.write("\n")
+    # '''

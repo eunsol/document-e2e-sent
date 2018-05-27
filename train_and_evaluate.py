@@ -127,7 +127,7 @@ def train(Xtrain, Xdev, Xtest,
         print("Epoch " + str(epoch))
         i = 0
         for batch in Xtrain:
-            (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
+            (words, lengths), polarity, label = batch.text, batch.polarity, batch.label
             (holders, holder_lengths) = batch.holder_index
             (targets, target_lengths) = batch.target_index
             co_occur_feature = batch.co_occurrences
@@ -140,7 +140,7 @@ def train(Xtrain, Xdev, Xtest,
             model.batch_size = len(label.data)  # set batch size
 
             # Step 3. Run our forward pass.
-            log_probs = model(words, polarity, holder_target, lengths,
+            log_probs = model(words, polarity, None, lengths,
                               holders, targets, holder_lengths, target_lengths,
                               co_occur_feature=co_occur_feature,
                               holder_rank=holder_rank, target_rank=target_rank,
@@ -218,7 +218,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
     for batch in Xs:
         counter += 1
         # print(word_to_ix)
-        (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
+        (words, lengths), polarity, label = batch.text, batch.polarity, batch.label
         (holders, holder_lengths) = batch.holder_index
         (targets, target_lengths) = batch.target_index
         co_occur_feature = batch.co_occurrences
@@ -233,7 +233,7 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
         if len(label.data) > BATCH_SIZE:
             print(label.data)
         '''
-        log_probs = model(words, polarity, holder_target, lengths,
+        log_probs = model(words, polarity, None, lengths,
                           holders, targets, holder_lengths, target_lengths,
                           co_occur_feature=co_occur_feature,
                           holder_rank=holder_rank, target_rank=target_rank,
@@ -322,7 +322,7 @@ def main():
                                                                                       test_name=
                                                                                       datasets[set_name]["filenames"][
                                                                                           2],
-                                                                                      has_holdtarg=True)
+                                                                                      has_holdtarg=False)
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos
