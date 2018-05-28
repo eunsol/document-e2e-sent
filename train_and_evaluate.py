@@ -29,7 +29,13 @@ if using_GPU:
     threshold = threshold.cuda()
 MODEL = Model1
 
-set_name = "no_co_occurs"
+set_name = "F"
+
+
+def save_name(epoch):
+    return "./model_states/ablations/sentence_feature" + set_name + "/adv_" + str(epoch) + ".pt"
+
+
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -38,8 +44,8 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["train.json", "dev.json", "test.json"],
                   "weights": torch.FloatTensor([0.77, 1.766, 1]),
                   "batch": 10},
-            "C": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+            "C": {"filepath": "./data/final",
+                  "filenames": ["C_train.json", "acl_dev_eval.json", "acl_test.json"],
                   "weights": torch.FloatTensor([1, 0.07, 1.26]),
                   "batch": 50},
             "D": {"filepath": "./data/new_annot/feature",
@@ -50,8 +56,8 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["E_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.3523, 1.0055]),
                   "batch": 25},
-            "F": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+            "F": {"filepath": "./data/final",
+                  "filenames": ["F_train.json", "acl_dev_eval.json", "acl_test.json"],
                   "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
                   "batch": 80},
             "G": {"filepath": "./data/new_annot/feature",
@@ -188,7 +194,7 @@ def train(Xtrain, Xdev, Xtest,
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
-        torch.save(model.state_dict(), "./model_states/" + set_name + "/adv_" + str(epoch) + ".pt")
+        torch.save(model.state_dict(), save_name(epoch))
     print("dev losses:")
     print(dev_loss_epoch)
     return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, train_loss_epoch, best_epoch
@@ -373,7 +379,7 @@ def main():
     print("    " + str(test_a[best_epoch]))
 
     print("saving model...")
-    torch.save(model.state_dict(), "./model_states/" + set_name + "/adv_" + str(epochs) + ".pt")
+    torch.save(model.state_dict(), save_name(epochs))
 
     return model, TEXT, POLARITY
 

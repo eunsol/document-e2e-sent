@@ -78,11 +78,11 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     )
 
     print("loading word embeddings")
-    TEXT.build_vocab(train, val, test, vectors="glove.6B." + str(embedding_dim) + "d")
-    POLARITY.build_vocab(train, val, test)
+    TEXT.build_vocab(train, vectors="glove.6B." + str(embedding_dim) + "d")
+    POLARITY.build_vocab(train)
     print(POLARITY.vocab.stoi)
     if has_holdtarg:
-        HOLDER_TARGET.build_vocab(train, val, test)
+        HOLDER_TARGET.build_vocab(train)
         print(HOLDER_TARGET.vocab.stoi)
     DOCID.build_vocab(train, val, test)
 

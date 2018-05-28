@@ -17,7 +17,7 @@ threshold = torch.log(torch.FloatTensor([0.5, 0.1, 0.5]))
 if using_GPU:
     threshold = threshold.cuda()
 
-set_name = "no_co_occurs"
+set_name = "F"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -38,8 +38,8 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["E_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([1, 0.3523, 1.0055]),
                   "batch": 25},
-            "F": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+            "F": {"filepath": "./data/final",
+                  "filenames": ["F_train.json", "acl_dev_eval.json", "acl_test.json"],
                   "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
                   "batch": 80},
             "G": {"filepath": "./data/new_annot/feature",
@@ -78,10 +78,22 @@ def main():
                                                               train_name=datasets[set_name]["filenames"][1],
                                                               dev_name=datasets[set_name]["filenames"][0],
                                                               test_name=datasets[set_name]["filenames"][2],
-                                                              has_holdtarg=True)
+                                                              has_holdtarg=False)
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos
+
+    print(len(ix_to_word))
+
+    dev_data, _, _, TEXT, DOCID, _ = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
+                                                              filepath=datasets[set_name]["filepath"],
+                                                              train_name=datasets[set_name]["filenames"][0],
+                                                              dev_name=datasets[set_name]["filenames"][1],
+                                                              test_name=datasets[set_name]["filenames"][2],
+                                                              has_holdtarg=False)
+    print(len(ix_to_word))
+    assert ix_to_word == TEXT.vocab.itos
+    print("wow!")
 
     VOCAB_SIZE = len(word_to_ix)
 
