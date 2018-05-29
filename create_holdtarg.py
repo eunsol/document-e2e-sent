@@ -1,11 +1,10 @@
 import json
 
-all_data = []
-
-filenames = ["E_train.json", "F_train.json", "G_train.json", "H_train.json"]
+filenames = ["C_train.json", "F_train.json", "acl_dev_eval.json", "acl_test.json", "acl_mpqa_eval.json"]
 for filename in filenames:
     print(filename)
-    with open("./data/new_annot/polarity_label/" + filename, "r", encoding="latin1") as af:
+    all_data = []
+    with open("./data/final/" + filename, "r", encoding="latin1") as af:
         for line in af:
             annot = json.loads(line)
             holder_target = []
@@ -20,14 +19,14 @@ for filename in filenames:
             annot["holder_target"] = holder_target
             all_data.append(annot)
 
-    with open("./data/new_annot/polarity_label_holdtarg/" + filename, "w", encoding="latin1") as wf:
+    with open("./data/final/" + filename, "w", encoding="latin1") as wf:
         for line in all_data:
             json.dump(line, wf)
             wf.write('\n')
 
     print("evaluating validity...")
     # testing
-    with open("./data/new_annot/polarity_label_holdtarg/" + filename, "r", encoding="latin1") as ef:
+    with open("./data/final/" + filename, "r", encoding="latin1") as ef:
         for line in ef:
             annot = json.loads(line)
             holder_target = annot["holder_target"]

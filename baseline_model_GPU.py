@@ -22,7 +22,7 @@ DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
 ERROR_ANALYSIS = False
 
-set_name = "A"
+set_name = "C"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "mpqa_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -31,8 +31,8 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["train.json", "dev.json", "test.json"],
                   "weights": torch.FloatTensor([0.77, 1.766, 1]),
                   "batch": 10},
-            "C": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+            "C": {"filepath": "./data/final",
+                  "filenames": ["C_train.json", "acl_dev_eval.json", "acl_test.json"],
                   "weights": torch.FloatTensor([1, 0.07, 1.26]),
                   "batch": 50},
             "D": {"filepath": "./data/new_annot/feature",
@@ -40,11 +40,11 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "weights": torch.FloatTensor([2.7, 0.1, 1]),
                   "batch": 10},
             "E": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["E_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                  "filenames": ["E_train.json", "acl_dev_eval.json", "acl_test.json"],
                   "weights": torch.FloatTensor([1, 0.3523, 1.0055]),
                   "batch": 25},
             "F": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "mpqa_new.json"],
+                  "filenames": ["F_train.json", "acl_dev_eval.json", "acl_test.json"],
                   "weights": torch.FloatTensor([1, 0.054569, 1.0055]),
                   "batch": 100},
             "G": {"filepath": "./data/new_annot/feature",
@@ -277,6 +277,7 @@ def train(Xtrain, Xdev, Xtest,
                                                      error_analysis=False)
         test_res.append(test_score)
         test_accs.append(test_acc)
+        torch.save(model.state_dict(), "./model_states/baseline_" + set_name + "_" + str(epochs) + ".pt")
 
     print("dev losses:")
     print(dev_losses_epoch)
@@ -377,8 +378,8 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
         if total_pred[i] == 0:
             precision[i] = 0.0
         else:
-            precision[i] = total_correct[i] / total_pred[i]
-        recall[i] = total_correct[i] / total_true[i]
+            precision[i] = float(total_correct[i]) / float(total_pred[i])
+        recall[i] = float(total_correct[i]) / float(total_true[i])
         if precision[i] + recall[i] == 0:
             f1[i] = 0.0
         else:
