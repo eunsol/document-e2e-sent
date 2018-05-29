@@ -114,7 +114,7 @@ class Model1(nn.Module):
                                                     hidden_dims=[hidden_dim, num_labels],
                                                     activations=nn.ReLU())
         '''
-        self.final_sentiment_score = nn.Linear(in_features=12 * hidden_dim + 5 * feature_embeddings_size,
+        self.final_sentiment_score = nn.Linear(in_features=12 * hidden_dim + 6 * feature_embeddings_size,
                                                out_features=num_labels)
         #  self.pairwise_sentiment_score = nn.Linear(in_features=12 * hidden_dim, out_features=num_labels)
         # '''
@@ -131,6 +131,7 @@ class Model1(nn.Module):
         lstm_input = torch.cat((word_embeds_vec, feature_embeds_vec), 2)
         # print(lstm_input.size())
         #        total_length = lstm_input.size(1)  # get the max sequence length
+        lstm_input = self.dropout(lstm_input)  # Dropout
 
         # Mask out padding
         if lengths is not None:
@@ -145,9 +146,6 @@ class Model1(nn.Module):
         # Re-apply padding
         if lengths is not None:
             lstm_out = pad_packed_sequence(lstm_out, batch_first=True)[0]
-
-        # Dimension: batch_size, sequence_len, 2 * hidden_dim (since concatenated forward w/ backward)
-        lstm_out = self.dropout(lstm_out)
 
         # Mask encoded words to isolate holders
         holder_mask = (holder_inds[:, :, 0] >= 0).long()
@@ -188,7 +186,7 @@ class Model1(nn.Module):
         # [H1, T2]
         # [H1, T2]
         # Shape: (b, h * t, 12 * d)
-        all_pairs = torch.cat([holders_repeat, targets_repeat], dim=2)
+        # all_pairs = torch.cat([holders_repeat, targets_repeat], dim=2)
         # all_pairs = self.dropout(all_pairs)
 
         '''
@@ -208,7 +206,7 @@ class Model1(nn.Module):
         co_occur_feature[co_occur_feature >= 10] = 9
         co_occur_embeds_vec = self.co_occur_embeds(co_occur_feature)
         co_occur_embeds_vec = co_occur_embeds_vec.unsqueeze(1)
-        co_occur_embeds_vec = co_occur_embeds_vec.repeat(1, all_pairs.size()[1], 1)
+        co_occur_embeds_vec = co_occur_embeds_vec.repeat(1, holders_repeat.size()[1], 1)
 
         # Holder & target lengths features
         #   Holder lengths
@@ -216,19 +214,19 @@ class Model1(nn.Module):
         holder_lengths = torch.add(holder_lengths, -1)
         num_holder_embeds_vec = self.num_holder_mention_embeds(holder_lengths)
         num_holder_embeds_vec = num_holder_embeds_vec.unsqueeze(1)
-        num_holder_embeds_vec = num_holder_embeds_vec.repeat(1, all_pairs.size()[1], 1)
+        num_holder_embeds_vec = num_holder_embeds_vec.repeat(1, holders_repeat.size()[1], 1)
         #   Target lengths
         target_lengths[target_lengths >= num_mentions_cats] = num_mentions_cats
         target_lengths = torch.add(target_lengths, -1)
         num_target_embeds_vec = self.num_holder_mention_embeds(target_lengths)
         num_target_embeds_vec = num_target_embeds_vec.unsqueeze(1)
-        num_target_embeds_vec = num_target_embeds_vec.repeat(1, all_pairs.size()[1], 1)
+        num_target_embeds_vec = num_target_embeds_vec.repeat(1, holders_repeat.size()[1], 1)
         #   min(Holder, Target) lengths
         min_lengths = torch.min(holder_lengths, target_lengths)  # already subtracted 1 from holder & target lengths
         min_lengths[min_lengths >= num_mentions_cats] = num_mentions_cats
         min_embeds_vec = self.min_mention_embeds(min_lengths)
         min_embeds_vec = min_embeds_vec.unsqueeze(1)
-        min_embeds_vec = min_embeds_vec.repeat(1, all_pairs.size()[1], 1)
+        min_embeds_vec = min_embeds_vec.repeat(1, holders_repeat.size()[1], 1)
 
         # Holder & target ranks
         holder_rank[holder_rank >= 5] = 5  # all ranks >= 5 get mapped to 6
@@ -238,25 +236,26 @@ class Model1(nn.Module):
         holder_rank_vec = self.holder_rank_embeds(holder_rank)
         target_rank_vec = self.target_rank_embeds(target_rank)
         holder_rank_vec = holder_rank_vec.unsqueeze(1)
-        holder_rank_vec = holder_rank_vec.repeat(1, all_pairs.size()[1], 1)
+        holder_rank_vec = holder_rank_vec.repeat(1, holders_repeat.size()[1], 1)
         target_rank_vec = target_rank_vec.unsqueeze(1)
-        target_rank_vec = target_rank_vec.repeat(1, all_pairs.size()[1], 1)
+        target_rank_vec = target_rank_vec.repeat(1, holders_repeat.size()[1], 1)
 
         # Classification of sentence model
         sent_classify_vec = self.sent_classify_embeds(sent_classify)
         sent_classify_vec = sent_classify_vec.unsqueeze(1)
-        sent_classify_vec = sent_classify_vec.repeat(1, all_pairs.size()[1], 1)
+        sent_classify_vec = sent_classify_vec.repeat(1, holders_repeat.size()[1], 1)
 
         # Shape: (batch_size, # mentions pairs, 12 * hidden_dim + 5 * feature_embedding_size)
-        final_rep = torch.cat([all_pairs, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec,
-                               holder_rank_vec, target_rank_vec], dim=-1)
+        final_rep = torch.cat([holders_repeat, targets_repeat, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec,
+                               holder_rank_vec, target_rank_vec, sent_classify_vec], dim=-1)
         final_rep = self.dropout(final_rep)  # dropout
 
         # Shape: (batch_size, # mention pairs, 3)
         output = self.final_sentiment_score(final_rep)
-        # output = F.softmax(output, dim=-1)  #  F.log_softmax(output, dim=1)  # Shape: b x 3
+        output = F.softmax(output, dim=-1)  #  F.log_softmax(output, dim=1)  # Shape: b x 3
         aggregate = aggregate_mentions(output, dim=1)
         log_probs = F.log_softmax(aggregate, dim=-1)  # Shape: b x 3
+#        print(log_probs)
 
         return log_probs  # , alphas
 
