@@ -30,11 +30,13 @@ if using_GPU:
 MODEL = Model1
 
 set_name = "C"
-
+ablations_to_use = ["sentence", "co_occurrence", "num_mentions", "mentions_rank", "all"]
+ABLATIONS = ablations_to_use[0]
 
 def save_name(epoch):
-    return "./model_states/final/" + set_name + "/adv_" + str(epoch) + ".pt"
+    return "./model_states/final/" + set_name + "/" + ABLATIONS + "/adv_" + str(epoch) + ".pt"
 
+print(save_name("<epoch>"))
 
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
@@ -194,6 +196,7 @@ def train(Xtrain, Xdev, Xtest,
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
+        print("saving model as " + save_name(epoch))
         torch.save(model.state_dict(), save_name(epoch))
     print("dev losses:")
     print(dev_loss_epoch)
@@ -340,7 +343,8 @@ def main():
     model = MODEL(NUM_LABELS, VOCAB_SIZE,
                    EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                    NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
-                   max_co_occurs=MAX_CO_OCCURS)
+                   max_co_occurs=MAX_CO_OCCURS,
+                   ablations=ABLATIONS)
 
     print("num params = ")
     print(len(model.state_dict()))
@@ -377,9 +381,6 @@ def main():
     print("Test results: ")
     print("    " + str(test_c[best_epoch]) + " " + str(sum(test_c[best_epoch]) / len(test_c[best_epoch])))
     print("    " + str(test_a[best_epoch]))
-
-    print("saving model...")
-    torch.save(model.state_dict(), save_name(epochs))
 
     return model, TEXT, POLARITY
 

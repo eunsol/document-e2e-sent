@@ -16,6 +16,7 @@ from allennlp.nn import util
 from allennlp.modules.span_extractors import SelfAttentiveSpanExtractor, EndpointSpanExtractor
 
 num_mentions_cats = 5
+ABLATION_TO_DIM = {"sentence": 5, "co_occurrence": 5, "num_mentions": 4, "mentions_rank": 4, "all": 0}
 
 '''
 #  in1_features: dimension of in1 embeds
@@ -56,7 +57,8 @@ def aggregate_mentions(inputs, dim=None, keepdim=False):
 class Model1(nn.Module):
     def __init__(self, num_labels, vocab_size, word_embeddings_size,
                  hidden_dim, word_embeddings, num_polarities, batch_size,
-                 dropout_rate, max_co_occurs, feature_embeddings_size=25):
+                 dropout_rate, max_co_occurs, feature_embeddings_size=25,
+                 ablations=None):
         super(Model1, self).__init__()
         self.dropout = nn.Dropout(dropout_rate)
 
@@ -114,8 +116,12 @@ class Model1(nn.Module):
                                                     hidden_dims=[hidden_dim, num_labels],
                                                     activations=nn.ReLU())
         '''
-        self.final_sentiment_score = nn.Linear(in_features=12 * hidden_dim + 6 * feature_embeddings_size,
-                                               out_features=num_labels)
+        # Any possible ablations
+        self.ablations = ablations
+        ft_dim = 12 * hidden_dim + 6 * feature_embeddings_size
+        if ablations is not None:
+            ft_dim = 12 * hidden_dim + ABLATION_TO_DIM[ablations] * feature_embeddings_size
+        self.final_sentiment_score = nn.Linear(in_features=ft_dim, out_features=num_labels)
         #  self.pairwise_sentiment_score = nn.Linear(in_features=12 * hidden_dim, out_features=num_labels)
         # '''
 
@@ -245,9 +251,25 @@ class Model1(nn.Module):
         sent_classify_vec = sent_classify_vec.unsqueeze(1)
         sent_classify_vec = sent_classify_vec.repeat(1, holders_repeat.size()[1], 1)
 
-        # Shape: (batch_size, # mentions pairs, 12 * hidden_dim + 5 * feature_embedding_size)
-        final_rep = torch.cat([holders_repeat, targets_repeat, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec,
-                               holder_rank_vec, target_rank_vec, sent_classify_vec], dim=-1)
+        # Shape: (batch_size, # mentions pairs, 12 * hidden_dim + 6 * feature_embedding_size)
+        to_concat = [holders_repeat, targets_repeat, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec,
+                     holder_rank_vec, target_rank_vec, sent_classify_vec]
+        if self.ablations is not None:
+            if self.ablations == "sentence":
+                to_concat = [holders_repeat, targets_repeat, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec,
+                             holder_rank_vec, target_rank_vec]
+            if self.ablations == "co_occurrence":
+                to_concat = [holders_repeat, targets_repeat, num_holder_embeds_vec, num_target_embeds_vec,
+                             holder_rank_vec, target_rank_vec, sent_classify_vec]
+            if self.ablations == "num_mentions":
+                to_concat = [holders_repeat, targets_repeat, co_occur_embeds_vec,
+                             holder_rank_vec, target_rank_vec, sent_classify_vec]
+            if self.ablations == "mentions_rank":
+                to_concat = [holders_repeat, targets_repeat, co_occur_embeds_vec, 
+                             num_holder_embeds_vec, num_target_embeds_vec, sent_classify_vec] 
+            if self.ablations == "all":
+                to_concat = [holders_repeat, targets_repeat]
+        final_rep = torch.cat(to_concat, dim=-1)
         final_rep = self.dropout(final_rep)  # dropout
 
         # Shape: (batch_size, # mention pairs, 3)
