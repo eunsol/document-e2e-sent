@@ -29,11 +29,11 @@ if using_GPU:
     threshold = threshold.cuda()
 MODEL = Model1
 
-set_name = "F"
+set_name = "C"
 
 
 def save_name(epoch):
-    return "./model_states/ablations/sentence_feature" + set_name + "/adv_" + str(epoch) + ".pt"
+    return "./model_states/final/" + set_name + "/adv_" + str(epoch) + ".pt"
 
 
 datasets = {"A": {"filepath": "./data/new_annot/feature",
@@ -126,7 +126,7 @@ def train(Xtrain, Xdev, Xtest,
     test_accs.append(test_acc)
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=0)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=1e-5)
 
     for epoch in range(0, epochs):
         losses = []
