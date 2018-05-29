@@ -15,10 +15,6 @@ from allennlp.modules import FeedForward
 from allennlp.nn import util
 from allennlp.modules.span_extractors import SelfAttentiveSpanExtractor, EndpointSpanExtractor
 
-num_mentions_map = {1: 0, 2: 1, 3: 1, 4: 1, 5: 1, 6: 2, 7: 2, 8: 2, 9: 2, 10: 2, 11: 3, 12: 3, 13: 3, 14: 3, 15: 3,
-                    16: 3, 17: 3, 18: 3, 19: 3, 20: 3, 21: 4}
-# (prev #, next #]
-NUM_MENTIONS_CUTOFF = [0, 1, 5, 10, 20]
 num_mentions_cats = 5
 
 '''
@@ -58,9 +54,9 @@ def aggregate_mentions(inputs, dim=None, keepdim=False):
 
 
 class Model1(nn.Module):
-    def __init__(self, num_labels, vocab_size, embeddings_size,
+    def __init__(self, num_labels, vocab_size, word_embeddings_size,
                  hidden_dim, word_embeddings, num_polarities, batch_size,
-                 dropout_rate, max_co_occurs):
+                 dropout_rate, max_co_occurs, feature_embeddings_size=25):
         super(Model1, self).__init__()
         self.dropout = nn.Dropout(dropout_rate)
 
@@ -68,22 +64,22 @@ class Model1(nn.Module):
         self.batch_size = batch_size
 
         # Specify embedding layers
-        self.word_embeds = nn.Embedding(vocab_size, embeddings_size)
+        self.word_embeds = nn.Embedding(vocab_size, word_embeddings_size)
         self.word_embeds.weight.data.copy_(torch.FloatTensor(word_embeddings))
         # self.word_embeds.weight.requires_grad = False  # don't update the embeddings
-        self.polarity_embeds = nn.Embedding(num_polarities + 1, embeddings_size)  # add 1 for <pad>
-        self.co_occur_embeds = nn.Embedding(max_co_occurs, embeddings_size)
-        self.holder_target_embeds = nn.Embedding(5, embeddings_size)  # add 2 for <pad> and <unk>
-        self.num_holder_mention_embeds = nn.Embedding(num_mentions_cats, embeddings_size)
-        self.num_target_mention_embeds = nn.Embedding(num_mentions_cats, embeddings_size)
-        self.min_mention_embeds = nn.Embedding(num_mentions_cats, embeddings_size)
-        self.holder_rank_embeds = nn.Embedding(5, embeddings_size)
-        self.target_rank_embeds = nn.Embedding(5, embeddings_size)
-        self.sent_classify_embeds = nn.Embedding(num_labels, embeddings_size)
+        self.polarity_embeds = nn.Embedding(num_polarities + 1, word_embeddings_size)  # add 1 for <pad>
+        self.co_occur_embeds = nn.Embedding(max_co_occurs, feature_embeddings_size)
+        self.holder_target_embeds = nn.Embedding(5, word_embeddings_size)  # add 2 for <pad> and <unk>
+        self.num_holder_mention_embeds = nn.Embedding(num_mentions_cats, feature_embeddings_size)
+        self.num_target_mention_embeds = nn.Embedding(num_mentions_cats, feature_embeddings_size)
+        self.min_mention_embeds = nn.Embedding(num_mentions_cats, feature_embeddings_size)
+        self.holder_rank_embeds = nn.Embedding(5, feature_embeddings_size)
+        self.target_rank_embeds = nn.Embedding(5, feature_embeddings_size)
+        self.sent_classify_embeds = nn.Embedding(num_labels, feature_embeddings_size)
 
         # The LSTM takes [word embeddings, feature embeddings, holder/target embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(2 * embeddings_size, hidden_dim, num_layers=2,
+        self.lstm = nn.LSTM(2 * word_embeddings_size, hidden_dim, num_layers=2,
                             batch_first=True, bidirectional=True, dropout=dropout_rate)
 
         # The linear layer that maps from hidden state space to target space
@@ -118,7 +114,8 @@ class Model1(nn.Module):
                                                     hidden_dims=[hidden_dim, num_labels],
                                                     activations=nn.ReLU())
         '''
-        self.final_sentiment_score = nn.Linear(in_features=17 * hidden_dim, out_features=num_labels)
+        self.final_sentiment_score = nn.Linear(in_features=12 * hidden_dim + 5 * feature_embeddings_size,
+                                               out_features=num_labels)
         #  self.pairwise_sentiment_score = nn.Linear(in_features=12 * hidden_dim, out_features=num_labels)
         # '''
 
@@ -174,11 +171,11 @@ class Model1(nn.Module):
 
 #        holders = self.holder_FFNN(holders)
 #        targets = self.target_FFNN(targets)
+#        holders = holders.mean(1)
+#        targets = targets.mean(1)
+#        pairwise_scores = torch.cat([holders, targets], dim=-1)
 
-        holders = holders.mean(1)
-        targets = targets.mean(1)
-        pairwise_scores = torch.cat([holders, targets], dim=-1)
-        '''
+        # '''
         # Shape: (b, h * t, 6 * d)
         holders_repeat = holders.repeat(1, targets.size()[1], 1)  # Repeat along dimension 2
         # Shape: (b, h, 6 * d * t)
@@ -192,8 +189,10 @@ class Model1(nn.Module):
         # [H1, T2]
         # Shape: (b, h * t, 12 * d)
         all_pairs = torch.cat([holders_repeat, targets_repeat], dim=2)
-        all_pairs = self.dropout(all_pairs)
-        
+        # all_pairs = self.dropout(all_pairs)
+
+        '''
+        # Aggregation 1: Weighted sum--not effective
         # Shape: (b, h * t, 1)
         pair_weights = self.pair_attention(all_pairs)
         pair_weights = F.softmax(pair_weights, dim=1)
@@ -203,24 +202,33 @@ class Model1(nn.Module):
         pairwise_scores = pairwise_scores.sum(1)
         # pairwise_scores = self.pairwise_sentiment_score(all_pairs).mean(1)
         '''
+
         # Apply embeds for co-occur feature
         # Shape: (batch_size, hidden_dim)
         co_occur_feature[co_occur_feature >= 10] = 9
         co_occur_embeds_vec = self.co_occur_embeds(co_occur_feature)
+        co_occur_embeds_vec = co_occur_embeds_vec.unsqueeze(1)
+        co_occur_embeds_vec = co_occur_embeds_vec.repeat(1, all_pairs.size()[1], 1)
 
         # Holder & target lengths features
         #   Holder lengths
         holder_lengths[holder_lengths >= num_mentions_cats] = num_mentions_cats
         holder_lengths = torch.add(holder_lengths, -1)
         num_holder_embeds_vec = self.num_holder_mention_embeds(holder_lengths)
+        num_holder_embeds_vec = num_holder_embeds_vec.unsqueeze(1)
+        num_holder_embeds_vec = num_holder_embeds_vec.repeat(1, all_pairs.size()[1], 1)
         #   Target lengths
         target_lengths[target_lengths >= num_mentions_cats] = num_mentions_cats
         target_lengths = torch.add(target_lengths, -1)
         num_target_embeds_vec = self.num_holder_mention_embeds(target_lengths)
+        num_target_embeds_vec = num_target_embeds_vec.unsqueeze(1)
+        num_target_embeds_vec = num_target_embeds_vec.repeat(1, all_pairs.size()[1], 1)
         #   min(Holder, Target) lengths
         min_lengths = torch.min(holder_lengths, target_lengths)  # already subtracted 1 from holder & target lengths
         min_lengths[min_lengths >= num_mentions_cats] = num_mentions_cats
         min_embeds_vec = self.min_mention_embeds(min_lengths)
+        min_embeds_vec = min_embeds_vec.unsqueeze(1)
+        min_embeds_vec = min_embeds_vec.repeat(1, all_pairs.size()[1], 1)
 
         # Holder & target ranks
         holder_rank[holder_rank >= 5] = 5  # all ranks >= 5 get mapped to 6
@@ -229,16 +237,26 @@ class Model1(nn.Module):
         target_rank = torch.add(target_rank, -1)  # start indices at 0
         holder_rank_vec = self.holder_rank_embeds(holder_rank)
         target_rank_vec = self.target_rank_embeds(target_rank)
+        holder_rank_vec = holder_rank_vec.unsqueeze(1)
+        holder_rank_vec = holder_rank_vec.repeat(1, all_pairs.size()[1], 1)
+        target_rank_vec = target_rank_vec.unsqueeze(1)
+        target_rank_vec = target_rank_vec.repeat(1, all_pairs.size()[1], 1)
 
+        # Classification of sentence model
         sent_classify_vec = self.sent_classify_embeds(sent_classify)
+        sent_classify_vec = sent_classify_vec.unsqueeze(1)
+        sent_classify_vec = sent_classify_vec.repeat(1, all_pairs.size()[1], 1)
 
-        # Shape: (batch_size, 3 * hidden_dim + 2 * hidden_dim)
-        final_rep = torch.cat([pairwise_scores, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec,
+        # Shape: (batch_size, # mentions pairs, 12 * hidden_dim + 5 * feature_embedding_size)
+        final_rep = torch.cat([all_pairs, co_occur_embeds_vec, num_holder_embeds_vec, num_target_embeds_vec,
                                holder_rank_vec, target_rank_vec], dim=-1)
         final_rep = self.dropout(final_rep)  # dropout
 
+        # Shape: (batch_size, # mention pairs, 3)
         output = self.final_sentiment_score(final_rep)
-        log_probs = F.log_softmax(output, dim=1)  # Shape: b x 3
+        # output = F.softmax(output, dim=-1)  #  F.log_softmax(output, dim=1)  # Shape: b x 3
+        aggregate = aggregate_mentions(output, dim=1)
+        log_probs = F.log_softmax(aggregate, dim=-1)  # Shape: b x 3
 
         return log_probs  # , alphas
 
