@@ -143,11 +143,11 @@ class Model1(nn.Module):
         if lengths is not None:
             lengths = lengths.view(-1).tolist()
             # print(lengths)
-            lstm_input = pack_padded_sequence(lstm_input, lengths, batch_first=True)
+            packed_input = pack_padded_sequence(lstm_input, lengths, batch_first=True)
             # print(lstm_input.data.size())
 
         # Pass through lstm, encoding words
-        lstm_out, _ = self.lstm(lstm_input)
+        lstm_out, _ = self.lstm(packed_input)
 
         # Re-apply padding
         if lengths is not None:
