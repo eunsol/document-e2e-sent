@@ -81,7 +81,7 @@ class Model1(nn.Module):
 
         # The LSTM takes [word embeddings, feature embeddings, holder/target embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(2 * word_embeddings_size, hidden_dim, num_layers=2,
+        self.lstm = nn.LSTM(2 * word_embeddings_size, hidden_dim, num_layers=4,
                             batch_first=True, bidirectional=True, dropout=dropout_rate)
 
         # The linear layer that maps from hidden state space to target space
@@ -159,7 +159,7 @@ class Model1(nn.Module):
         # Dimension: batch_size, # of holder mentions, 2 * (2 * hidden_dim)--both endpoints
         endpoint_holder = self._endpoint_span_extractor(lstm_out, holder_inds, span_indices_mask=holder_mask)
         # Dimension: batch_size, # of holder mentions, 2 * hidden_dim
-        attended_holder = self._attentive_span_extractor(lstm_out, holder_inds, span_indices_mask=holder_mask)
+        attended_holder = self._attentive_span_extractor(lstm_input, holder_inds, span_indices_mask=holder_mask)
         # Shape: (batch_size, # of holder mentions, 3 * (2 * hidden_dim))
         holders = torch.cat([endpoint_holder, attended_holder], -1)
 
@@ -169,7 +169,7 @@ class Model1(nn.Module):
         # Dimension: batch_size, # of target mentions, 2 * (2 * hidden_dim)
         endpoint_target = self._endpoint_span_extractor(lstm_out, target_inds, span_indices_mask=target_mask)
         # Dimension: batch_size, # of target mentions, 2 * hidden_dim
-        attended_target = self._attentive_span_extractor(lstm_out, target_inds, span_indices_mask=target_mask)
+        attended_target = self._attentive_span_extractor(lstm_input, target_inds, span_indices_mask=target_mask)
         # Shape: (batch_size, # of target mentions, 3 * (2 * hidden_dim))
         targets = torch.cat([endpoint_target, attended_target], -1)
 
