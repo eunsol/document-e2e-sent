@@ -31,10 +31,13 @@ MODEL = Model1
 
 set_name = "C"
 ablations_to_use = ["sentence", "co_occurrence", "num_mentions", "mentions_rank", "all"]
-ABLATIONS = ablations_to_use[0]
+ABLATIONS = None  # ablations_to_use[4]
 
 def save_name(epoch):
-    return "./model_states/final/" + set_name + "/" + ABLATIONS + "/adv_" + str(epoch) + ".pt"
+    if ABLATIONS is not None:
+        return "./model_states/final/" + set_name + "/" + ABLATIONS + "/adv_" + str(epoch) + ".pt"
+    else:
+        return "./model_states/final/" + set_name + "/adv_" + str(epoch) + ".pt"
 
 print(save_name("<epoch>"))
 
@@ -196,8 +199,8 @@ def train(Xtrain, Xdev, Xtest,
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
-        print("saving model as " + save_name(epoch))
-        torch.save(model.state_dict(), save_name(epoch))
+#        print("saving model as " + save_name(epoch))
+#        torch.save(model.state_dict(), save_name(epoch))
     print("dev losses:")
     print(dev_loss_epoch)
     return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, train_loss_epoch, best_epoch
