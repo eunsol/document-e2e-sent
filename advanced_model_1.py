@@ -81,7 +81,7 @@ class Model1(nn.Module):
 
         # The LSTM takes [word embeddings, feature embeddings, holder/target embeddings] as inputs, and
         # outputs hidden states with dimensionality hidden_dim.
-        self.lstm = nn.LSTM(2 * word_embeddings_size, hidden_dim, num_layers=4,
+        self.lstm = nn.LSTM(2 * word_embeddings_size, hidden_dim, num_layers=2,
                             batch_first=True, bidirectional=True, dropout=dropout_rate)
 
         # The linear layer that maps from hidden state space to target space
@@ -143,11 +143,11 @@ class Model1(nn.Module):
         if lengths is not None:
             lengths = lengths.view(-1).tolist()
             # print(lengths)
-            lstm_input = pack_padded_sequence(lstm_input, lengths, batch_first=True)
+            packed_input = pack_padded_sequence(lstm_input, lengths, batch_first=True)
             # print(lstm_input.data.size())
 
         # Pass through lstm, encoding words
-        lstm_out, _ = self.lstm(lstm_input)
+        lstm_out, _ = self.lstm(packed_input)
 
         # Re-apply padding
         if lengths is not None:

@@ -131,7 +131,7 @@ def train(Xtrain, Xdev, Xtest,
     test_accs.append(test_acc)
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=1e-5)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=0)
 
     for epoch in range(0, epochs):
         losses = []
