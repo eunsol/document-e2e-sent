@@ -7,7 +7,7 @@ import json
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 6
+epochs = 9
 EMBEDDING_DIM = 50
 MAX_CO_OCCURS = 10
 HIDDEN_DIM = EMBEDDING_DIM
@@ -93,21 +93,21 @@ def main():
     word_embeds = TEXT.vocab.vectors
     ix_to_docid = DOCID.vocab.itos
 
-    # '''
+    '''
     model = Model(NUM_LABELS, VOCAB_SIZE,
                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
+    model.load_state_dict(torch.load("./model_states/baseline_" + set_name + "_" + str(epochs) + ".pt"))
     '''
     model = Model1(NUM_LABELS, VOCAB_SIZE,
                    EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                    NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
                    max_co_occurs=MAX_CO_OCCURS)
-    '''
+    model.load_state_dict(torch.load("./model_states/final/" + set_name + "/span_attentive/adv_" + str(epochs) + ".pt"))
+    # '''
 
     print("num params = ")
     print(len(model.state_dict()))
-    model.load_state_dict(torch.load("./model_states/baseline_" + set_name + "_" + str(epochs) + ".pt"))
-    # model.load_state_dict(torch.load("./model_states/final/" + set_name + "/adv_" + str(epochs) + ".pt"))
     model.eval()
 
     # Move the model to the GPU if available
@@ -137,6 +137,7 @@ def main():
         model.zero_grad()
         model.batch_size = len(label.data)  # set batch size
         # Step 3. Run our forward pass.
+        '''
         log_probs, _ = model(words, polarity, holder_targets, lengths)
         '''
         log_probs = model(words, polarity, None, lengths,
@@ -144,7 +145,7 @@ def main():
                           co_occur_feature=co_occur_feature,
                           holder_rank=holder_rank, target_rank=target_rank,
                           sent_classify=sent_classify)  # log probs: batch_size x 3
-        '''
+        # '''
         pred_label = log_probs.data.max(1)[1]  # torch.ones(len(log_probs), dtype=torch.long)
         '''
         pred_label = torch.ones(len(log_probs), dtype=torch.long)
@@ -173,18 +174,14 @@ def main():
             print(counter)
             print(len(texts))
 
-    print(probs)
-    print(preds)
-    print(acts)
-    with open("./error_analysis/" + set_name + "/wrong_docs_dev_baseline.json", "w") as wf:
+    with open("./error_analysis/" + set_name + "/wrong_docs_dev_adv.json", "w") as wf:
         for line in texts:
             json.dump(line, wf)
             wf.write("\n")
-    with open("./error_analysis/" + set_name + "/right_docs_dev_baseline.json", "w") as wf:
+    with open("./error_analysis/" + set_name + "/right_docs_dev_adv.json", "w") as wf:
         for line in right_texts:
             json.dump(line, wf)
             wf.write("\n")
-    print(texts)
 
 
 if __name__ == "__main__":
