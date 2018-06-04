@@ -2,7 +2,8 @@ import torch
 import data_processor as parser
 from advanced_model_1 import Model1
 from baseline_model_GPU import Model
-from train_and_evaluate import evaluate
+from train_and_evaluate import evaluate as evaluate1
+from baseline_model_GPU import evaluate
 
 #  from advanced_model_2 import Model2
 
@@ -17,10 +18,11 @@ DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
 MODEL = Model1
 
-epochs = [6, 9]
-set_name = "C"
+epochs = [6, 7, 8, 9]
 ablations_to_use = ["sentence", "co_occurrence", "num_mentions", "mentions_rank", "all"]
-ABLATIONS = None  # ablations_to_use[4]
+ABLATIONS = None  # ablations_to_use[0]
+
+set_name = "C"
 
 
 def save_name(epoch):
@@ -89,55 +91,68 @@ def main():
                                                                           train_name=datasets[set_name]["filenames"][0],
                                                                           dev_name=datasets[set_name]["filenames"][1],
                                                                           test_name=datasets[set_name]["filenames"][2],
-                                                                          has_holdtarg=False)
+                                                                          has_holdtarg=True)
     _, _, MPQAtest, TEXT1, _, _ = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
                                                            filepath=datasets[set_name]["filepath"],
                                                            train_name=datasets[set_name]["filenames"][0],
                                                            dev_name=datasets[set_name]["filenames"][1],
                                                            test_name=datasets[set_name]["filenames"][3],
-                                                           has_holdtarg=False)
+                                                           has_holdtarg=True)
 
     assert len(TEXT.vocab.stoi) == len(TEXT1.vocab.stoi)
     assert TEXT.vocab.vectors.equal(TEXT1.vocab.vectors)
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos
+    ix_to_docid = DOCID.vocab.itos
 
     VOCAB_SIZE = len(word_to_ix)
 
     word_embeds = TEXT.vocab.vectors
 
-    model = MODEL(NUM_LABELS, VOCAB_SIZE,
-                  EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
-                  NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
-                  max_co_occurs=MAX_CO_OCCURS,
-                  ablations=ABLATIONS)
+    mode = None
 
     if MODEL == Model:  # if baseline...
-        model = Model(NUM_LABELS, VOCAB_SIZE,
+        model = MODEL(NUM_LABELS, VOCAB_SIZE,
                       EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
                       NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
+    else:
+        model = MODEL(NUM_LABELS, VOCAB_SIZE,
+                      EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
+                      NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
+                      max_co_occurs=MAX_CO_OCCURS,
+                      ablations=ABLATIONS)
+
+
 
     print("num params = ")
     print(len(model.state_dict()))
+    model = model.eval()
 
     for epoch in epochs:
-        model.load_state_dict(torch.load(save_name(epochs)))
+        model.load_state_dict(torch.load(save_name(epoch)))
 
         # Move the model to the GPU if available
         if using_GPU:
             model = model.cuda()
 
         print("evaluating epoch " + str(epoch) + "...")
-        train_score, train_acc = evaluate(model, word_to_ix, ix_to_word, Xtrain, using_GPU)
-        print("    train f1 scores = " + str(train_score))
-        dev_score, dev_acc = evaluate(model, word_to_ix, ix_to_word, Xdev, using_GPU)
-        print("    dev f1 scores = " + str(dev_score))
-        ACL_test_score, ACL_test_acc = evaluate(model, word_to_ix, ix_to_word, ACLtest, using_GPU)
-        print("    ACL test f1 scores = " + str(ACL_test_score))
-        MPQA_test_score, MPQA_test_acc = evaluate(model, word_to_ix, ix_to_word, MPQAtest, using_GPU)
-        print("    MPQA test f1 scores = " + str(MPQA_test_score))
+        train_score = dev_score = ACL_test_score = MPQA_test_score = None
+        if MODEL == Model:
+            train_score, train_acc, _ = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtrain, using_GPU)
+            dev_score, dev_acc, _ = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xdev, using_GPU)
+            ACL_test_score, ACL_test_acc, _ = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, ACLtest, using_GPU)
+            MPQA_test_score, MPQA_test_acc, _ = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, MPQAtest, using_GPU)
+        else:
+            train_score, train_acc = evaluate1(model, word_to_ix, ix_to_word, Xtrain, using_GPU)
+            dev_score, dev_acc = evaluate1(model, word_to_ix, ix_to_word, Xdev, using_GPU)
+            ACL_test_score, ACL_test_acc = evaluate1(model, word_to_ix, ix_to_word, ACLtest, using_GPU)
+            MPQA_test_score, MPQA_test_acc = evaluate1(model, word_to_ix, ix_to_word, MPQAtest, using_GPU)
 
+        print("    train f1 scores = " + str(train_score))
+        print("    dev f1 scores = " + str(dev_score))
+        print("    ACL test f1 scores = " + str(ACL_test_score))
+        print("    MPQA test f1 scores = " + str(MPQA_test_score))
 
 if __name__ == "__main__":
     main()

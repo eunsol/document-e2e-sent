@@ -16,11 +16,11 @@ from advanced_model_1 import Model1
 #  from advanced_model_2 import Model2
 
 # Readily changed
-epochs = [i for i in range(0, 10)]
+epochs = [i for i in range(6, 10)]
 set_name = "C"
 ablations_to_use = ["sentence", "co_occurrence", "num_mentions", "mentions_rank", "all"]
 ABLATIONS = None  # ablations_to_use[4]
-SAVE_MODEL = False
+SAVE_MODEL = False  # True
 
 
 def save_name(epoch):
@@ -44,6 +44,7 @@ NUM_POLARITIES = 6
 using_GPU = torch.cuda.is_available()
 if using_GPU:
     threshold = threshold.cuda()
+    torch.cuda.manual_seed_all(7)
 MODEL = Model1
 
 # Datasets
@@ -145,7 +146,7 @@ def train(Xtrain, Xdev, Xtest,
         test_accs2.append(test_acc)
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=0)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=1e-5)
 
     for epoch in epochs:
         losses = []
