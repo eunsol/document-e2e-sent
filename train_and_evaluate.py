@@ -12,6 +12,7 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import graph_results as plotter
 import data_processor as parser
 from advanced_model_1 import Model1
+
 #  from advanced_model_2 import Model2
 
 # Readily changed
@@ -19,6 +20,7 @@ epochs = [i for i in range(0, 10)]
 set_name = "C"
 ablations_to_use = ["sentence", "co_occurrence", "num_mentions", "mentions_rank", "all"]
 ABLATIONS = None  # ablations_to_use[4]
+SAVE_MODEL = False
 
 
 def save_name(epoch):
@@ -82,13 +84,13 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "weights": torch.FloatTensor([1.3745, 0.077, 1]),
                   "batch": 50},
             "has_co_occurs": {"filepath": "./data/has_co_occurs",
-                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1.06656, 0.13078, 1]),
-                  "batch": 80},
+                              "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                              "weights": torch.FloatTensor([1.06656, 0.13078, 1]),
+                              "batch": 80},
             "no_co_occurs": {"filepath": "./data/no_co_occurs",
-                  "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
-                  "weights": torch.FloatTensor([1, 0.02429, 1.206897]),
-                  "batch": 80}
+                             "filenames": ["F_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+                             "weights": torch.FloatTensor([1, 0.02429, 1.206897]),
+                             "batch": 80}
             }
 
 BATCH_SIZE = datasets[set_name]["batch"]
@@ -96,15 +98,17 @@ BATCH_SIZE = datasets[set_name]["batch"]
 
 def train(Xtrain, Xdev, Xtest,
           model, word_to_ix, ix_to_word,
-          using_GPU, lr_decay=1):
+          using_GPU, lr_decay=1, Xtest2=None):
     print("Evaluating before training...")
     train_res = []
     dev_res = []
     dev_f1_aves = []
     test_res = []
+    test_res2 = []
     train_accs = []
     dev_accs = []
     test_accs = []
+    test_accs2 = []
 
     weights = datasets[set_name]["weights"]
     if using_GPU:
@@ -134,6 +138,11 @@ def train(Xtrain, Xdev, Xtest,
     test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
     test_res.append(test_score)
     test_accs.append(test_acc)
+
+    if Xtest2 is not None:
+        test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest2, using_GPU)
+        test_res2.append(test_score)
+        test_accs2.append(test_acc)
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=0)
@@ -201,11 +210,19 @@ def train(Xtrain, Xdev, Xtest,
             best_epoch = epoch
             print("Updated best epoch: " + str(dev_f1_aves[best_epoch - epochs[0]]))
         dev_accs.append(dev_acc)
+
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
+
+        if Xtest2 is not None:
+            test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest2, using_GPU)
+            test_res2.append(test_score)
+            test_accs2.append(test_acc)
+
         print("saving model as " + save_name(epoch))
-        torch.save(model.state_dict(), save_name(epoch))
+        if SAVE_MODEL:
+            torch.save(model.state_dict(), save_name(epoch))
     print("dev losses:")
     print(dev_loss_epoch)
     return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, train_loss_epoch, best_epoch
@@ -328,20 +345,22 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
 def main():
     print(save_name("<epoch>"))
 
-    train_data, dev_data, test_data, TEXT, DOCID, POLARITY = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM,
-                                                                                      using_GPU,
-                                                                                      filepath=datasets[set_name][
-                                                                                          "filepath"],
-                                                                                      train_name=
-                                                                                      datasets[set_name]["filenames"][
-                                                                                          0],
-                                                                                      dev_name=
-                                                                                      datasets[set_name]["filenames"][
-                                                                                          1],
-                                                                                      test_name=
-                                                                                      datasets[set_name]["filenames"][
-                                                                                          2],
-                                                                                      has_holdtarg=False)
+    Xtrain, Xdev, ACLtest, TEXT, DOCID, POLARITY = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
+                                                                            filepath=datasets[set_name]["filepath"],
+                                                                            train_name=datasets[set_name]["filenames"][
+                                                                                0],
+                                                                            dev_name=datasets[set_name]["filenames"][1],
+                                                                            test_name=datasets[set_name]["filenames"][
+                                                                                2],
+                                                                            has_holdtarg=False)
+    MPQAtest = None
+    if len(datasets[set_name]["filenames"]) == 4:
+        _, _, MPQAtest, TEXT1, _, _ = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
+                                                               filepath=datasets[set_name]["filepath"],
+                                                               train_name=datasets[set_name]["filenames"][0],
+                                                               dev_name=datasets[set_name]["filenames"][1],
+                                                               test_name=datasets[set_name]["filenames"][3],
+                                                               has_holdtarg=False)
 
     word_to_ix = TEXT.vocab.stoi
     ix_to_word = TEXT.vocab.itos
@@ -351,10 +370,10 @@ def main():
     word_embeds = TEXT.vocab.vectors
 
     model = MODEL(NUM_LABELS, VOCAB_SIZE,
-                   EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
-                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
-                   max_co_occurs=MAX_CO_OCCURS,
-                   ablations=ABLATIONS)
+                  EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
+                  NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
+                  max_co_occurs=MAX_CO_OCCURS,
+                  ablations=ABLATIONS)
 
     print("num params = ")
     print(len(model.state_dict()))
@@ -367,10 +386,10 @@ def main():
         model = model.cuda()
 
     train_c, dev_c, test_c, train_a, dev_a, test_a, losses, best_epoch = \
-        train(train_data, dev_data, test_data,
+        train(Xtrain, Xdev, ACLtest,
               model,
               word_to_ix, ix_to_word,
-              using_GPU)
+              using_GPU, Xtest2=MPQAtest)
     print("Train results: ")
     print("    " + str(train_c))
     print("    " + str(train_a))
