@@ -1,6 +1,7 @@
 import torch
 import data_processor as parser
 from advanced_model_1 import Model1
+from baseline_model_GPU import Model
 from train_and_evaluate import evaluate
 
 #  from advanced_model_2 import Model2
@@ -23,6 +24,8 @@ ABLATIONS = None  # ablations_to_use[4]
 
 
 def save_name(epoch):
+    if MODEL == Model:
+        return "./model_states/baseline_" + set_name + "_" + str(epoch) + ".pt"
     if ABLATIONS is not None:
         return "./model_states/final/" + set_name + "/" + ABLATIONS + "/adv_" + str(epoch) + ".pt"
     else:
@@ -109,6 +112,11 @@ def main():
                   NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE,
                   max_co_occurs=MAX_CO_OCCURS,
                   ablations=ABLATIONS)
+
+    if MODEL == Model:  # if baseline...
+        model = Model(NUM_LABELS, VOCAB_SIZE,
+                      EMBEDDING_DIM, HIDDEN_DIM, word_embeds,
+                      NUM_POLARITIES, BATCH_SIZE, DROPOUT_RATE)
 
     print("num params = ")
     print(len(model.state_dict()))

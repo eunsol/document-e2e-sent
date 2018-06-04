@@ -233,7 +233,7 @@ def train(Xtrain, Xdev, Xtest,
             # Step 4. Compute the loss, gradients, and update the parameters by
             # calling optimizer.step()
             loss = loss_function(log_probs, label)  # log_probs = actual distr, target = computed distr
-            losses.append(float(loss)) 
+            losses.append(float(loss))
             loss.backward()
             optimizer.step()
             # print("loss = " + str(loss))
@@ -271,13 +271,14 @@ def train(Xtrain, Xdev, Xtest,
         if (epoch_score > dev_f1_aves[best_epoch]):
             best_epoch = epoch
             wrongs_to_ret = [train_wrongs, dev_wrongs]
-            print("Updated best epoch: " + str(dev_f1_aves[best_epoch])) 
+            print("Updated best epoch: " + str(dev_f1_aves[best_epoch]))
         dev_accs.append(dev_acc)
         test_score, test_acc, test_wrongs = evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xtest, using_GPU,
                                                      error_analysis=False)
         test_res.append(test_score)
         test_accs.append(test_acc)
-        torch.save(model.state_dict(), "./model_states/baseline_" + set_name + "_" + str(epochs) + ".pt")
+        print("saving model...")
+        torch.save(model.state_dict(), "./model_states/baseline_" + set_name + "_" + str(epoch) + ".pt")
 
     print("dev losses:")
     print(dev_losses_epoch)
@@ -340,7 +341,7 @@ def evaluate(model, word_to_ix, ix_to_word, ix_to_docid, Xs, using_GPU, error_an
             mask = (label.data != pred_label)
             docs = docid[mask]
             wrong_doc = list(map(lambda x: ix_to_docid[int(x)], docs))
-            wrong_label = list(log_probs[mask]) 
+            wrong_label = list(log_probs[mask])
             actual_label = list(label.data[mask])
             wrong_docs[0].extend(wrong_doc)
             wrong_docs[1].extend(wrong_label)
@@ -457,9 +458,6 @@ def main():
 
     print("Wrongs")
     print(wrongs)
-
-    print("saving model...")
-    torch.save(model.state_dict(), "./model_states/baseline_" + set_name + "_" + str(epochs) + ".pt")
     '''                   
     print(str(dev_c))
     best_epochs = np.argmax(np.array(dev_c))
