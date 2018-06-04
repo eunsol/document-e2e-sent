@@ -1,7 +1,13 @@
 import json
 import random
 
-wrong_filenames = ["./error_analysis/wrong_docs_has_1s.json", "./error_analysis/wrong_docs_has_1s_mpqa.json",
+wrong_filenames = ["./error_analysis/C/wrong_docs_dev.json", "./error_analysis/C/wrong_docs_dev_baseline.json",
+                   "./error_analysis/C/wrong_docs_dev_adv.json"]
+right_filenames = ["./error_analysis/C/right_docs_dev.json", "./error_analysis/C/right_docs_dev_baseline.json",
+                   "./error_analysis/C/right_docs_dev_adv.json"]
+docs_file = ["./data/final/acl_dev_eval.json", "./data/final/acl_dev_eval.json", "./data/final/acl_dev_eval.json"]
+'''
+#wrong_filenames = ["./error_analysis/wrong_docs_has_1s.json", "./error_analysis/wrong_docs_has_1s_mpqa.json",
                    "./error_analysis/added_mention_features/wrong_docs.json",
                    "./error_analysis/added_mention_features/wrong_docs_mpqa.json",
                    "./error_analysis/added_mention_features/wrong_docs_acl_test.json"]
@@ -12,8 +18,10 @@ right_filenames = ["./error_analysis/right_docs_has_1s.json", "./error_analysis/
 docs_file = ["./data/new_annot/feature/acl_dev_eval_new.json", "./data/new_annot/feature/mpqa_new.json",
              "./data/new_annot/feature/acl_dev_eval_new.json", "./data/new_annot/feature/mpqa_new.json",
              "./data/new_annot/feature/acl_test_new.json"]
-file = 0
+'''
 
+file = 1
+model_to_evaluate = "baseline"
 
 def make_key(holder_inds, target_inds):
     key = ""
@@ -71,10 +79,12 @@ with open(wrong_filenames[file], "r") as rf:
 is_0_pred_0 = []
 is_1_pred_1 = []
 is_2_pred_2 = []
+count_0 = 0
 with open(right_filenames[file], "r") as rf:
     for l in rf:
         line = json.loads(l)
         if line["actual"] == 0:
+            count_0 += 1
             is_0_pred_0.append(line)
         if line["actual"] == 2:
             is_2_pred_2.append(line)
@@ -556,6 +566,21 @@ def count_num_mentions(filename):
     # print([target_lens[i] / sum(target_lens) for i in range(len(target_lens))])
 
 
+def write_to_file():
+    all_data = []
+    with open("./error_analysis/C/acl_dev_eval.json", "r", encoding="latin1") as rf:
+        for line in rf:
+            annot = json.loads(line)
+            pred = doc_to_pairinds_to_preds[annot["docid"]][make_key(annot["holder_index"], annot["target_index"])]
+            annot[model_to_evaluate] = pred
+            all_data.append(annot)
+
+    with open("./error_analysis/C/acl_dev_eval.json", "w", encoding="latin1") as wf:
+        for annot in all_data:
+            json.dump(annot, wf)
+            wf.write("\n")
+
+
 def main():
     #'APW_ENG_20100521.0054': {'acts': [0, 79, 11]
     # 'XIN_ENG_20100915.0131': {'acts': [0, 37, 5], 'pred': [1, 13, 28]}
@@ -594,10 +619,14 @@ def main():
     print()
     '''
     #  save_examples(is_0_pred_1, "./error_analysis/acl_guessed_0_is_1_condense.txt", 1)
-    #  save_examples(is_1_pred_2, "./error_analysis/mpqa_guessed_2_is_1_condense.txt", 0.09)
+    #  save_examples(is_1_pred_2, "./error_analysis/C/guessed_2_is_1_condense.txt", 0.15)
+    # save_examples(is_1_pred_0, "./error_analysis/C/guessed_0_is_1_condense.txt", 0.3)
+    # save_examples(is_2_pred_0, "./error_analysis/C/guessed_2_is_0_condense.txt", 1)
+
     #  save_examples(is_2_pred_1, "./error_analysis/acl_guessed_2_is_1_condense.txt", 0.5)
-    pairs_classified()
+    #  pairs_classified()
     print()
+    #  write_to_file()
     '''
     count_num_mentions("./data/new_annot/feature/mpqa_new.json")
     #  count_num_mentions("./data/new_annot/feature/new_train.json")
