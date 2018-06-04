@@ -7,7 +7,7 @@ import json
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 9
+epochs = 13
 EMBEDDING_DIM = 50
 MAX_CO_OCCURS = 10
 HIDDEN_DIM = EMBEDDING_DIM

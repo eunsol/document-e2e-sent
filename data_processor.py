@@ -27,7 +27,7 @@ def custom_post_inds(input, *args):
 
 
 def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new_annot/trainsplit_holdtarg",
-                      train_name="train.json", dev_name="dev.json", test_name="test.json", has_holdtarg=False, dev_batch_size=2):
+                      train_name="train.json", dev_name="dev.json", test_name="test.json", has_holdtarg=False, dev_batch_size=100):
     """
     Reads the file with name filename
     """
@@ -84,7 +84,7 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     if has_holdtarg:
         HOLDER_TARGET.build_vocab(train)
         print(HOLDER_TARGET.vocab.stoi)
-    DOCID.build_vocab(train)
+    DOCID.build_vocab(train, val, test)
 
     print("Train length = " + str(len(train.examples)))
     print("Dev length = " + str(len(val.examples)))

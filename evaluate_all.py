@@ -18,7 +18,7 @@ DROPOUT_RATE = 0.2
 using_GPU = torch.cuda.is_available()
 MODEL = Model1
 
-epochs = [6, 7, 8, 9]
+epochs = [16, 17, 18, 19]
 ablations_to_use = ["sentence", "co_occurrence", "num_mentions", "mentions_rank", "all"]
 ABLATIONS = None  # ablations_to_use[0]
 
@@ -31,7 +31,7 @@ def save_name(epoch):
     if ABLATIONS is not None:
         return "./model_states/final/" + set_name + "/" + ABLATIONS + "/adv_" + str(epoch) + ".pt"
     else:
-        return "./model_states/final/" + set_name + "/adv_" + str(epoch) + ".pt"
+        return "./model_states/final/" + set_name + "/span_attentive/adv_" + str(epoch) + ".pt"
 
 
 print(save_name("<epoch>"))
