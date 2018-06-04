@@ -70,8 +70,8 @@ for i in range(len(confirm_files)):
         for line in all_data:
             json.dump(line, cf)
             cf.write("\n")
-
 '''
+
 for fn in confirm_files:
     print(fn)
     # Compare with results from just sentence
@@ -80,8 +80,8 @@ for fn in confirm_files:
     all_wrong_data_acts = [[], [], []]
 
     num_correct_data = [0, 0, 0]
-    num_wrong_data_pred = [0, 0, 0]
-    num_wrong_data_acts = [0, 0, 0]
+    num_data_pred = [0, 0, 0]
+    num_data_acts = [0, 0, 0]
     with open("./data/stanford_label_sent_boundary_with_label/" + fn, "r", encoding="latin1") as rf:
         for line in rf:
             annot = json.loads(line)
@@ -92,23 +92,23 @@ for fn in confirm_files:
                 num_correct_data[label] += 1
             # all_wrong_data_pred[pred].append(annot)
             # all_wrong_data_acts[label].append(annot)
-            num_wrong_data_pred[pred] += 1
-            num_wrong_data_acts[label] += 1
+            num_data_pred[pred] += 1
+            num_data_acts[label] += 1
 
     print(num_correct_data)
-    print(num_wrong_data_pred)
-    print(num_wrong_data_acts)
+    print(num_data_pred)
+    print(num_data_acts)
 
     precision = [0, 0, 0]
     recall = [0, 0, 0]
     total_f1 = [0, 0, 0]
     for i in range(3):
         print(i)
-        if num_wrong_data_pred[i] == 0:
+        if num_data_pred[i] == 0:
             precision[i] = 0
         else:
-            precision[i] = num_correct_data[i] / num_wrong_data_pred[i]
-        recall[i] = num_correct_data[i] / num_wrong_data_acts[i]
+            precision[i] = num_correct_data[i] / num_data_pred[i]
+        recall[i] = num_correct_data[i] / num_data_acts[i]
         if precision[i] + recall[i] == 0:
             total_f1[i] = 0
         else:
