@@ -84,7 +84,7 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     if has_holdtarg:
         HOLDER_TARGET.build_vocab(train)
         print(HOLDER_TARGET.vocab.stoi)
-    DOCID.build_vocab(train, val, test)
+    DOCID.build_vocab(train)
 
     print("Train length = " + str(len(train.examples)))
     print("Dev length = " + str(len(val.examples)))

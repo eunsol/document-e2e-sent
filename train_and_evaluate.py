@@ -14,33 +14,37 @@ import data_processor as parser
 from advanced_model_1 import Model1
 #  from advanced_model_2 import Model2
 
-NUM_LABELS = 3
-# convention: [NEG, NULL, POS]
-epochs = [i for i in range(17, 20)]
-EMBEDDING_DIM = 50
-MAX_CO_OCCURS = 10
-MAX_NUM_MENTIONS = 10
-HIDDEN_DIM = EMBEDDING_DIM
-NUM_POLARITIES = 6
-DROPOUT_RATE = 0.2
-using_GPU = torch.cuda.is_available()
-threshold = torch.log(torch.FloatTensor([0.5, 0.1, 0.5]))
-if using_GPU:
-    threshold = threshold.cuda()
-MODEL = Model1
-
+# Readily changed
+epochs = [i for i in range(0, 10)]
 set_name = "C"
 ablations_to_use = ["sentence", "co_occurrence", "num_mentions", "mentions_rank", "all"]
 ABLATIONS = None  # ablations_to_use[4]
+
 
 def save_name(epoch):
     if ABLATIONS is not None:
         return "./model_states/final/" + set_name + "/" + ABLATIONS + "/adv_" + str(epoch) + ".pt"
     else:
-        return "./model_states/final/" + set_name + "/span_attentive/adv_" + str(epoch) + ".pt"
+        return "./model_states/final/" + set_name + "/adv_" + str(epoch) + ".pt"
 
-print(save_name("<epoch>"))
 
+# Hyper-parameters
+EMBEDDING_DIM = 50
+MAX_CO_OCCURS = 10
+MAX_NUM_MENTIONS = 10
+HIDDEN_DIM = EMBEDDING_DIM
+DROPOUT_RATE = 0.2
+threshold = torch.log(torch.FloatTensor([0.5, 0.1, 0.5]))
+
+# Most likely not to change
+NUM_LABELS = 3  # convention: [NEG, NULL, POS]
+NUM_POLARITIES = 6
+using_GPU = torch.cuda.is_available()
+if using_GPU:
+    threshold = threshold.cuda()
+MODEL = Model1
+
+# Datasets
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -88,6 +92,7 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
             }
 
 BATCH_SIZE = datasets[set_name]["batch"]
+
 
 def train(Xtrain, Xdev, Xtest,
           model, word_to_ix, ix_to_word,
@@ -321,6 +326,8 @@ def evaluate(model, word_to_ix, ix_to_word, Xs, using_GPU,
 
 
 def main():
+    print(save_name("<epoch>"))
+
     train_data, dev_data, test_data, TEXT, DOCID, POLARITY = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM,
                                                                                       using_GPU,
                                                                                       filepath=datasets[set_name][
@@ -351,7 +358,9 @@ def main():
 
     print("num params = ")
     print(len(model.state_dict()))
-    model.load_state_dict(torch.load(save_name(epochs[0])))
+
+    if epochs[0] != 0:
+        model.load_state_dict(torch.load(save_name(epochs[0])))
 
     # Move the model to the GPU if available
     if using_GPU:
