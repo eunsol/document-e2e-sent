@@ -6,7 +6,7 @@ import json
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 10
+epochs = 9
 EMBEDDING_DIM = 50
 MAX_CO_OCCURS = 10
 HIDDEN_DIM = EMBEDDING_DIM
@@ -17,7 +17,7 @@ threshold = torch.log(torch.FloatTensor([0.5, 0.1, 0.5]))
 if using_GPU:
     threshold = threshold.cuda()
 
-set_name = "F"
+set_name = "C"
 datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["new_train.json", "acl_dev_eval_new.json", "acl_test_new.json"],
                   "weights": torch.FloatTensor([0.8, 1.825, 1]),
@@ -26,8 +26,8 @@ datasets = {"A": {"filepath": "./data/new_annot/feature",
                   "filenames": ["train.json", "dev.json", "test.json"],
                   "weights": torch.FloatTensor([0.77, 1.766, 1]),
                   "batch": 10},
-            "C": {"filepath": "./data/new_annot/feature",
-                  "filenames": ["train_90_null.json", "acl_dev_eval_new.json", "acl_test_new.json"],
+            "C": {"filepath": "./data/final",
+                  "filenames": ["C_train.json", "acl_dev_eval.json", "acl_test.json"],
                   "weights": torch.FloatTensor([1, 0.07, 1.26]),
                   "batch": 50},
             "D": {"filepath": "./data/new_annot/feature",
@@ -73,24 +73,16 @@ def decode(word_indices, ix_to_word):
 
 
 def main():
-    dev_data, _, _, TEXT, DOCID, _ = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
-                                                              filepath=datasets[set_name]["filepath"],
-                                                              train_name=datasets[set_name]["filenames"][1],
-                                                              dev_name=datasets[set_name]["filenames"][0],
-                                                              test_name=datasets[set_name]["filenames"][2],
-                                                              has_holdtarg=False)
-
-    word_to_ix = TEXT.vocab.stoi
-    ix_to_word = TEXT.vocab.itos
-
-    print(len(ix_to_word))
-
-    dev_data, _, _, TEXT, DOCID, _ = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
+    _, dev_data, _, TEXT, DOCID, _ = parser.parse_input_files(BATCH_SIZE, EMBEDDING_DIM, using_GPU,
                                                               filepath=datasets[set_name]["filepath"],
                                                               train_name=datasets[set_name]["filenames"][0],
                                                               dev_name=datasets[set_name]["filenames"][1],
                                                               test_name=datasets[set_name]["filenames"][2],
-                                                              has_holdtarg=False)
+                                                              has_holdtarg=False, dev_batch_size=1)
+
+    word_to_ix = TEXT.vocab.stoi
+    ix_to_word = TEXT.vocab.itos
+
     print(len(ix_to_word))
     assert ix_to_word == TEXT.vocab.itos
     print("wow!")
@@ -106,7 +98,7 @@ def main():
 
     print("num params = ")
     print(len(model.state_dict()))
-    model.load_state_dict(torch.load("./model_states/" + set_name + "/adv_" + str(epochs) + ".pt"))
+    model.load_state_dict(torch.load("./model_states/final/" + set_name + "/adv_" + str(epochs) + ".pt"))
     model.eval()
 
     # Move the model to the GPU if available
@@ -122,7 +114,7 @@ def main():
     right_texts = []
     for batch in dev_data:
         counter += 1
-        (words, lengths), polarity, holder_target, label = batch.text, batch.polarity, batch.holder_target, batch.label
+        (words, lengths), polarity, label = batch.text, batch.polarity, batch.label
         (holders, holder_lengths) = batch.holder_index
         (targets, target_lengths) = batch.target_index
         co_occur_feature = batch.co_occurrences
@@ -135,7 +127,7 @@ def main():
         model.zero_grad()
         model.batch_size = len(label.data)  # set batch size
         # Step 3. Run our forward pass.
-        log_probs = model(words, polarity, holder_target, lengths,
+        log_probs = model(words, polarity, None, lengths,
                           holders, targets, holder_lengths, target_lengths,
                           co_occur_feature=co_occur_feature,
                           holder_rank=holder_rank, target_rank=target_rank,

@@ -27,7 +27,7 @@ def custom_post_inds(input, *args):
 
 
 def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new_annot/trainsplit_holdtarg",
-                      train_name="train.json", dev_name="dev.json", test_name="test.json", has_holdtarg=False):
+                      train_name="train.json", dev_name="dev.json", test_name="test.json", has_holdtarg=False, dev_batch_size=2):
     """
     Reads the file with name filename
     """
@@ -92,6 +92,8 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     #print(val.examples[0].text)
 
     validation_batch = min(len(val.examples), 100)
+    if dev_batch_size is not None:
+        validation_batch = dev_batch_size
     test_batch = min(len(test.examples), 100)
 
     print("splitting & batching data")

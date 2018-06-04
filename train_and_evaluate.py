@@ -16,11 +16,11 @@ from advanced_model_1 import Model1
 #  from advanced_model_2 import Model2
 
 # Readily changed
-epochs = [i for i in range(6, 10)]
+epochs = [i for i in range(0, 10)]
 set_name = "C"
 ablations_to_use = ["sentence", "co_occurrence", "num_mentions", "mentions_rank", "all"]
 ABLATIONS = None  # ablations_to_use[4]
-SAVE_MODEL = False  # True
+SAVE_MODEL = True
 
 
 def save_name(epoch):
@@ -100,6 +100,7 @@ BATCH_SIZE = datasets[set_name]["batch"]
 def train(Xtrain, Xdev, Xtest,
           model, word_to_ix, ix_to_word,
           using_GPU, lr_decay=1, Xtest2=None):
+    print(Xtest2)
     print("Evaluating before training...")
     train_res = []
     dev_res = []
