@@ -91,8 +91,8 @@ def parse_input_files(batch_size, embedding_dim, using_GPU, filepath="./data/new
     print("Test length = " + str(len(test.examples)))
     #print(val.examples[0].text)
 
-    validation_batch = min(len(val.examples), 500)
-    test_batch = min(len(test.examples), 500)
+    validation_batch = min(len(val.examples), 100)
+    test_batch = min(len(test.examples), 100)
 
     print("splitting & batching data")
     train_iter, val_iter, test_iter = data.Iterator.splits(

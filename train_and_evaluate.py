@@ -16,7 +16,7 @@ from advanced_model_1 import Model1
 
 NUM_LABELS = 3
 # convention: [NEG, NULL, POS]
-epochs = 10
+epochs = [i for i in range(17, 20)]
 EMBEDDING_DIM = 50
 MAX_CO_OCCURS = 10
 MAX_NUM_MENTIONS = 10
@@ -37,7 +37,7 @@ def save_name(epoch):
     if ABLATIONS is not None:
         return "./model_states/final/" + set_name + "/" + ABLATIONS + "/adv_" + str(epoch) + ".pt"
     else:
-        return "./model_states/final/" + set_name + "/adv_" + str(epoch) + ".pt"
+        return "./model_states/final/" + set_name + "/span_attentive/adv_" + str(epoch) + ".pt"
 
 print(save_name("<epoch>"))
 
@@ -122,7 +122,7 @@ def train(Xtrain, Xdev, Xtest,
     train_res.append(train_score)
     dev_res.append(dev_score)
     dev_f1_aves.append(sum(dev_score) / len(dev_score))
-    best_epoch = 0
+    best_epoch = epochs[0]
     train_accs.append(train_acc)
     dev_accs.append(dev_acc)
 
@@ -131,9 +131,9 @@ def train(Xtrain, Xdev, Xtest,
     test_accs.append(test_acc)
 
     # skip updating the non-requires-grad params (i.e. the embeddings)
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=1e-5)
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-3, weight_decay=0)
 
-    for epoch in range(0, epochs):
+    for epoch in epochs:
         losses = []
         print("Epoch " + str(epoch))
         i = 0
@@ -192,15 +192,15 @@ def train(Xtrain, Xdev, Xtest,
         train_accs.append(train_acc)
         dev_res.append(dev_score)
         dev_f1_aves.append(sum(dev_score) / len(dev_score))
-        if dev_f1_aves[epoch] > dev_f1_aves[best_epoch]:
+        if dev_f1_aves[epoch - epochs[0]] > dev_f1_aves[best_epoch - epochs[0]]:
             best_epoch = epoch
-            print("Updated best epoch: " + str(dev_f1_aves[best_epoch]))
+            print("Updated best epoch: " + str(dev_f1_aves[best_epoch - epochs[0]]))
         dev_accs.append(dev_acc)
         test_score, test_acc = evaluate(model, word_to_ix, ix_to_word, Xtest, using_GPU)
         test_res.append(test_score)
         test_accs.append(test_acc)
-#        print("saving model as " + save_name(epoch))
-#        torch.save(model.state_dict(), save_name(epoch))
+        print("saving model as " + save_name(epoch))
+        torch.save(model.state_dict(), save_name(epoch))
     print("dev losses:")
     print(dev_loss_epoch)
     return train_res, dev_res, test_res, train_accs, dev_accs, test_accs, train_loss_epoch, best_epoch
@@ -351,7 +351,7 @@ def main():
 
     print("num params = ")
     print(len(model.state_dict()))
-    #    model.load_state_dict(torch.load("./model_states/adv_G_10.pt"))
+    model.load_state_dict(torch.load(save_name(epochs[0])))
 
     # Move the model to the GPU if available
     if using_GPU:
@@ -375,6 +375,7 @@ def main():
     print(losses)
 
     print("Best epoch = " + str(best_epoch))
+    best_epoch -= epochs[0]
     print("Train results: ")
     print("    " + str(train_c[best_epoch]) + " " + str(sum(train_c[best_epoch]) / len(train_c[best_epoch])))
     print("    " + str(train_a[best_epoch]))
