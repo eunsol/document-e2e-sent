@@ -1,5 +1,6 @@
 import json
 import random
+import numpy as np
 
 wrong_filenames = ["./error_analysis/C/wrong_docs_dev.json", "./error_analysis/C/wrong_docs_dev_baseline.json",
                    "./error_analysis/C/wrong_docs_dev_adv.json"]
@@ -19,9 +20,10 @@ docs_file = ["./data/new_annot/feature/acl_dev_eval_new.json", "./data/new_annot
              "./data/new_annot/feature/acl_dev_eval_new.json", "./data/new_annot/feature/mpqa_new.json",
              "./data/new_annot/feature/acl_test_new.json"]
 '''
+models_map = {1: "baseline", 2: "adv"}
 
 file = 1
-model_to_evaluate = "baseline"
+model_to_evaluate = "classify" #  models_map[file]
 
 def make_key(holder_inds, target_inds):
     key = ""
@@ -45,21 +47,6 @@ is_2_pred_1 = []
 with open(wrong_filenames[file], "r") as rf:
     for l in rf:
         line = json.loads(l)
-        if line["actual"] == 0:
-            if line["prediction"] == 1:
-                is_0_pred_1.append(line)
-            if line["prediction"] == 2:
-                is_0_pred_2.append(line)
-        if line["actual"] == 1:
-            if line["prediction"] == 0:
-                is_1_pred_0.append(line)
-            if line["prediction"] == 2:
-                is_1_pred_2.append(line)
-        if line["actual"] == 2:
-            if line["prediction"] == 0:
-                is_2_pred_0.append(line)
-            if line["prediction"] == 1:
-                is_2_pred_1.append(line)
         if line["docid"] not in docs_to_labels:
             docs_to_labels[line["docid"]] = {"probs": [], "pred": [], "acts": []}
             doc_probs_no_sent_to_act_label[line["docid"]] = {}
@@ -85,11 +72,6 @@ with open(right_filenames[file], "r") as rf:
         line = json.loads(l)
         if line["actual"] == 0:
             count_0 += 1
-            is_0_pred_0.append(line)
-        if line["actual"] == 2:
-            is_2_pred_2.append(line)
-        if line["actual"] == 1:
-            is_1_pred_1.append(line)
         if line["docid"] not in docs_to_labels:
             docs_to_labels[line["docid"]] = {"pred": [], "acts": []}
             doc_probs_no_sent_to_act_label[line["docid"]] = {}
@@ -103,6 +85,31 @@ with open(right_filenames[file], "r") as rf:
             doc_to_pairinds_to_preds[line["docid"]] = {}
         doc_to_pairinds_to_preds[line["docid"]][make_key(line["holders"], line["targets"])] = line["prediction"]
         ex_to_pred[l] = line["prediction"]
+
+with open("./error_analysis/C/acl_dev_eval.json", "r") as rf:
+    for l in rf:
+        line = json.loads(l)
+        if line["label"] == 0:
+            if line[model_to_evaluate] == 0:
+                is_0_pred_0.append(line)
+            if line[model_to_evaluate] == 1:
+                is_0_pred_1.append(line)
+            if line[model_to_evaluate] == 2:
+                is_0_pred_2.append(line)
+        if line["label"] == 1:
+            if line[model_to_evaluate] == 0:
+                is_1_pred_0.append(line)
+            if line[model_to_evaluate] == 1:
+                is_1_pred_1.append(line)
+            if line[model_to_evaluate] == 2:
+                is_1_pred_2.append(line)
+        if line["label"] == 2:
+            if line[model_to_evaluate] == 0:
+                is_2_pred_0.append(line)
+            if line[model_to_evaluate] == 1:
+                is_2_pred_1.append(line)
+            if line[model_to_evaluate] == 2:
+                is_2_pred_2.append(line)
 
 #  print(docs_to_labels)
 
@@ -321,7 +328,7 @@ def analyze_num_mentions(list1):
 
 
 def ave_same_sentence_features(exs):
-    co_occurs = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+    co_occurs = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     for ex in exs:
         ind = int(doc_to_ht_to_cooccur[ex["docid"]][make_key(ex["holders"], ex["targets"])])
         if ind >= 10:
@@ -581,6 +588,52 @@ def write_to_file():
             wf.write("\n")
 
 
+def count_label_freqs_per_co_occur():
+    co_occur_to_label_distr = {}
+    co_occur_to_preds_distr = {}
+    max_co_occur = 0
+    square = [[0, 0, 0],
+              [0, 0, 0],
+              [0, 0, 0]]
+    with open("./error_analysis/C/acl_dev_eval.json", "r", encoding="latin1") as rf:
+        for line in rf:
+            annot = json.loads(line)
+            # Note same set of co-occurrences in each
+            if annot["co_occurrences"] not in co_occur_to_label_distr:
+                co_occur_to_label_distr[annot["co_occurrences"]] = [0, 0, 0]
+                co_occur_to_preds_distr[annot["co_occurrences"]] = [0, 0, 0]
+                if annot["co_occurrences"] > max_co_occur:
+                    max_co_occur = annot["co_occurrences"]
+            co_occur_to_label_distr[annot["co_occurrences"]][annot["label"]] += 1
+            co_occur_to_preds_distr[annot["co_occurrences"]][annot[model_to_evaluate]] += 1
+
+            if annot["co_occurrences"] == 1:
+                square[annot["classify"]][annot["label"]] += 1
+
+    print(square)
+
+    max_co_occur += 1
+    co_occur_to_labels = [i for i in range(max_co_occur)]
+    co_occur_to_preds = [i for i in range(max_co_occur)]
+
+    for i in range(max_co_occur):
+        if i in co_occur_to_label_distr:
+            co_occur_to_labels[i] = co_occur_to_label_distr[i]
+            co_occur_to_preds[i] = co_occur_to_preds_distr[i]
+        else:
+            co_occur_to_labels[i] = [0, 0, 0]
+            co_occur_to_preds[i] = [0, 0, 0]
+
+    print(co_occur_to_label_distr)
+    for co_occur in co_occur_to_labels:
+        print(str(co_occur[0]) + "\t" + str(co_occur[1]) + "\t" + str(co_occur[2]))
+    print(co_occur_to_labels)
+    print(co_occur_to_preds_distr)
+    for co_occur in co_occur_to_preds:
+        print(str(co_occur[0]) + "\t" + str(co_occur[1]) + "\t" + str(co_occur[2]))
+    print(co_occur_to_preds)
+
+
 def main():
     #'APW_ENG_20100521.0054': {'acts': [0, 79, 11]
     # 'XIN_ENG_20100915.0131': {'acts': [0, 37, 5], 'pred': [1, 13, 28]}
@@ -627,6 +680,7 @@ def main():
     #  pairs_classified()
     print()
     #  write_to_file()
+    count_label_freqs_per_co_occur()
     '''
     count_num_mentions("./data/new_annot/feature/mpqa_new.json")
     #  count_num_mentions("./data/new_annot/feature/new_train.json")

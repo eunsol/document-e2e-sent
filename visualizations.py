@@ -248,6 +248,5 @@ for i in range(len(docs_chosen)):
 
     plt.savefig("./demo/" + doc + ".png", bbox_inches='tight')  # save figure
     plt.close(f)  # close it
-    break
 
 # plt.show()
