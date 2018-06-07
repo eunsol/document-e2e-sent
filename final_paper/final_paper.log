@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  5 JUN 2018 21:34
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  6 JUN 2018 23:50
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -298,31 +298,34 @@ Package: booktabs 2016/04/27 v1.618033 publication quality tables
 )
 (./final_paper.aux
 
-LaTeX Warning: Label `tab:data' multiply defined.
+LaTeX Warning: Label `fig:intro' multiply defined.
+
+
+LaTeX Warning: Label `fig:intro' multiply defined.
 
 )
 \openout1 = `final_paper.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 45.
-LaTeX Font Info:    ... okay on input line 45.
-LaTeX Font Info:    Try loading font information for OT1+ptm on input line 45.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 44.
+LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    Try loading font information for OT1+ptm on input line 44.
  (/usr/local/texlive/2016/texmf-dist/tex/latex/psnfss/ot1ptm.fd
 File: ot1ptm.fd 2001/06/04 font definitions for OT1/ptm.
 )
 \AtBeginShipoutBox=\box30
-Package hyperref Info: Link coloring ON on input line 45.
+Package hyperref Info: Link coloring ON on input line 44.
 
 (/usr/local/texlive/2016/texmf-dist/tex/latex/hyperref/nameref.sty
 Package: nameref 2012/10/27 v2.43 Cross-referencing by name of section
@@ -332,9 +335,9 @@ Package: gettitlestring 2016/05/16 v1.5 Cleanup title references (HO)
 )
 \c@section@level=\count120
 )
-LaTeX Info: Redefining \ref on input line 45.
-LaTeX Info: Redefining \pageref on input line 45.
-LaTeX Info: Redefining \nameref on input line 45.
+LaTeX Info: Redefining \ref on input line 44.
+LaTeX Info: Redefining \pageref on input line 44.
+LaTeX Info: Redefining \nameref on input line 44.
 
 (./final_paper.out) (./final_paper.out)
 \@outlinefile=\write3
@@ -371,22 +374,26 @@ File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <14.4> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 46.
-LaTeX Font Info:    Try loading font information for U+lasy on input line 46.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 45.
+LaTeX Font Info:    Try loading font information for U+lasy on input line 45.
 
 (/usr/local/texlive/2016/texmf-dist/tex/latex/base/ulasy.fd
 File: ulasy.fd 1998/08/17 v2.2e LaTeX symbol font definitions
 )
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <12> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 46.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 45.
+LaTeX Font Info:    Try loading font information for OT1+pcr on input line 45.
 
+(/usr/local/texlive/2016/texmf-dist/tex/latex/psnfss/ot1pcr.fd
+File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
+)
 <example_article.png, id=4, 380.8629pt x 287.6346pt>
 File: example_article.png Graphic file (type png)
  <use example_article.png>
-Package pdftex.def Info: example_article.png used on input line 69.
+Package pdftex.def Info: example_article.png used on input line 68.
 (pdftex.def)             Requested size: 190.43097pt x 143.81694pt.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10.95> not available
-(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 73.
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 72.
 
 [1{/usr/local/texlive/2016/texmf-var/fonts/map/pdftex/updmap/pdftex.map}
 
@@ -394,35 +401,38 @@ LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10.95> not available
 
  <./example_article.png>]
 
-Package natbib Warning: Citation `Lee:17' on page 2 undefined on input line 90.
+Package natbib Warning: Citation `Lee:17' on page 2 undefined on input line 89.
 
+
+
+Package natbib Warning: Citation `Choi:16' on page 2 undefined on input line 11
+3.
 
 
 Package natbib Warning: Citation `Choi:16' on page 2 undefined on input line 11
 4.
 
 
-Package natbib Warning: Citation `Choi:16' on page 2 undefined on input line 11
-5.
-
-
-Underfull \hbox (badness 1642) in paragraph at lines 114--124
+Underfull \hbox (badness 1642) in paragraph at lines 113--123
 \OT1/ptm/m/n/10.95 tain-ing a col-lec-tion short doc-u-ments that are
  []
 
 
-Package natbib Warning: Citation `Mou:16' on page 2 undefined on input line 127
+Package natbib Warning: Citation `Mou:16' on page 2 undefined on input line 126
 .
 
 
 Package natbib Warning: Citation `Choi:16' on page 2 undefined on input line 13
-8.
+7.
 
 
 Package natbib Warning: Citation `Manning:14' on page 2 undefined on input line
- 140.
+ 139.
 
-[2]
+
+Underfull \vbox (badness 5147) has occurred while \output is active []
+
+ [2]
 
 Package natbib Warning: Citation `Pennington:14' on page 3 undefined on input l
 ine 155.
@@ -445,106 +455,218 @@ Underfull \hbox (badness 2368) in paragraph at lines 182--186
 \OT1/ptm/b/n/10.95 Hyperparameters. \OT1/ptm/m/n/10.95 The GloVe em-bed-dings,
  []
 
+<base.png, id=31, 531.9875pt x 506.89375pt>
+File: base.png Graphic file (type png)
+ <use base.png>
+Package pdftex.def Info: base.png used on input line 189.
+(pdftex.def)             Requested size: 212.79123pt x 202.7539pt.
 
-Package natbib Warning: Citation `Verga:18' on page 3 undefined on input line 1
-90.
+<adv.png, id=32, 530.98375pt x 718.685pt>
+File: adv.png Graphic file (type png)
+ <use adv.png>
+Package pdftex.def Info: adv.png used on input line 196.
+(pdftex.def)             Requested size: 212.38972pt x 287.4689pt.
 
 
-Package natbib Warning: Citation `Lee:17' on page 3 undefined on input line 190
+Package natbib Warning: Citation `Verga:18' on page 3 undefined on input line 2
+02.
+
+
+Package natbib Warning: Citation `Lee:17' on page 3 undefined on input line 202
 .
 
 [3]
 
-Package natbib Warning: Citation `Lee:17' on page 4 undefined on input line 204
+Package natbib Warning: Citation `Lee:17' on page 4 undefined on input line 216
 .
 
 
-Package natbib Warning: Citation `Lee:17' on page 4 undefined on input line 211
+Package natbib Warning: Citation `Lee:17' on page 4 undefined on input line 223
 .
 
 
 Package natbib Warning: Citation `Verga:18' on page 4 undefined on input line 2
-20.
+32.
+
+[4 <./base.png> <./adv.png>]
+
+Package natbib Warning: Citation `Verga:18' on page 5 undefined on input line 2
+55.
 
 
-Package natbib Warning: Citation `Verga:18' on page 4 undefined on input line 2
-43.
-
-[4]
-Underfull \hbox (badness 4108) in paragraph at lines 250--253
+Underfull \hbox (badness 4108) in paragraph at lines 262--265
 \OT1/ptm/b/n/10.95 Training. \OT1/ptm/m/n/10.95 We aim to max-i-mize the log-
  []
 
 
-LaTeX Warning: Reference `tab:results' on page 5 undefined on input line 306.
+Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 29
+1.
 
 
-Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 30
-8.
+Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 29
+2.
 
 
-Package natbib Warning: Citation `Socher:13' on page 5 undefined on input line 
-311.
+Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 29
+6.
 
 
-Package natbib Warning: Citation `Socher:13' on page 5 undefined on input line 
-315.
-
-
-Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 32
+Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 29
 7.
 
 
-Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 32
-8.
-
-[5]
-
-LaTeX Warning: Reference `tab:ablations' on page 6 undefined on input line 336.
+Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 30
+1.
 
 
+Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 30
+2.
 
-Underfull \hbox (badness 2478) in paragraph at lines 360--366
-\OT1/ptm/b/n/10.95 Multi-layer BiL-STM and Ad-vanced Model
+
+Overfull \hbox (1.91417pt too wide) in paragraph at lines 286--306
+ [][] 
+ []
+
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10> not available
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 306.
+
+Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 30
+6.
+
+
+Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 30
+6.
+
+
+Package natbib Warning: Citation `Choi:16' on page 5 undefined on input line 33
+7.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 335--338
+\OT1/ptm/m/n/10.95 To mea-sure our mod-els' per-for-mance on
  []
 
 
-Underfull \hbox (badness 1859) in paragraph at lines 381--384
+Underfull \hbox (badness 6396) in paragraph at lines 335--338
+\OT1/ptm/m/n/10.95 document-level entity-entity sen-ti-ment anal-y-
+ []
+
+
+Underfull \hbox (badness 1418) in paragraph at lines 335--338
+\OT1/ptm/m/n/10.95 sis, we use pre-ci-sion, re-call, and F1 scores.
+ []
+
+
+Underfull \hbox (badness 1127) in paragraph at lines 335--338
+\OT1/ptm/m/n/10.95 to per-form cross-sentence rea-son-ing, per-forms
+ []
+
+[5]
+
+Package natbib Warning: Citation `Socher:13' on page 6 undefined on input line 
+340.
+
+
+Package natbib Warning: Citation `Socher:13' on page 6 undefined on input line 
+344.
+
+
+Underfull \vbox (badness 1009) has occurred while \output is active []
+
+
+
+Package natbib Warning: Citation `Choi:16' on page 6 undefined on input line 35
+6.
+
+
+Package natbib Warning: Citation `Choi:16' on page 6 undefined on input line 35
+7.
+
+[6]
+Overfull \hbox (6.07178pt too wide) in paragraph at lines 365--381
+ [][] 
+ []
+
+
+Underfull \vbox (badness 5878) has occurred while \output is active []
+
+
+Underfull \hbox (badness 5105) in paragraph at lines 433--438
+\OT1/ptm/m/n/10.95 base-line is its in-abil-ity to clas-sify non-co-
+ []
+
+[7]
+Underfull \hbox (badness 2096) in paragraph at lines 441--446
+[]\OT1/ptm/m/n/10.95 The an-no-ta-tions them-selves may con-tribute
+ []
+
+
+Package natbib Warning: Citation `Choi:16' on page 8 undefined on input line 45
+2.
+
+
+Package natbib Warning: Citation `Irsoy:14' on page 8 undefined on input line 4
+62.
+
+
+Package natbib Warning: Citation `Liu:15' on page 8 undefined on input line 462
+.
+
+
+Package natbib Warning: Citation `Katiyar:16' on page 8 undefined on input line
+ 463.
+
+
+Package natbib Warning: Citation `Lee:17' on page 8 undefined on input line 468
+.
+
+
+Package natbib Warning: Citation `Verga:18' on page 8 undefined on input line 4
+69.
+
+
+Underfull \hbox (badness 3302) in paragraph at lines 472--476
+\OT1/ptm/m/n/10.95 We present two LSTM-based neu-ral mod-els
+ []
+
+[8]
+
+Package natbib Warning: Citation `Yang:13' on page 9 undefined on input line 47
+8.
+
+
+Underfull \hbox (badness 1859) in paragraph at lines 484--487
 \OT1/ptm/m/n/10.95 The ac-knowl-edg-ments should go im-me-di-ately
  []
 
 
-Underfull \hbox (badness 1215) in paragraph at lines 381--384
+Underfull \hbox (badness 1215) in paragraph at lines 484--487
 \OT1/ptm/m/n/10.95 knowl-edg-ments sec-tion. Do not in-clude this
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 381--384
+Underfull \hbox (badness 10000) in paragraph at lines 484--487
 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 385--386
+Underfull \hbox (badness 10000) in paragraph at lines 488--489
 
  []
 
-LaTeX Font Info:    Try loading font information for OT1+pcr on input line 388.
 
-(/usr/local/texlive/2016/texmf-dist/tex/latex/psnfss/ot1pcr.fd
-File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
-)
-Underfull \hbox (badness 10000) in paragraph at lines 387--390
+Underfull \hbox (badness 10000) in paragraph at lines 490--493
 []\OT1/ptm/m/n/10.95 Include your own bib file like this:
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 387--390
+Underfull \hbox (badness 10000) in paragraph at lines 490--493
 []\OT1/pcr/m/n/9 \bibliographystyle{acl_natbib_nourl}
  []
 
 No file final_paper.bbl.
 
-Underfull \hbox (badness 10000) in paragraph at lines 391--394
+Underfull \hbox (badness 10000) in paragraph at lines 494--497
 []\OT1/ptm/m/n/10.95 Where []\OT1/pcr/m/n/10.95 emnlp2018 \OT1/ptm/m/n/10.95 co
 r-re-sponds to the
  []
@@ -552,30 +674,29 @@ r-re-sponds to the
 
 Package natbib Warning: There were undefined citations.
 
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 399.
-[6]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 399.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 502.
+[9
+
+]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 502.
  (./final_paper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 399.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 399.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 502.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 502.
 Package rerunfilecheck Info: File `final_paper.out' has not changed.
 (rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
 
 
-LaTeX Warning: There were undefined references.
-
-
 LaTeX Warning: There were multiply-defined labels.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 399.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 502.
  )
 (\end occurred when \iffalse on line 347 was incomplete) 
 Here is how much of TeX's memory you used:
- 6739 strings out of 493014
- 95912 string characters out of 6133351
- 202776 words of memory out of 5000000
- 10174 multiletter control sequences out of 15000+600000
- 22913 words of font info for 57 fonts, out of 8000000 for 9000
+ 6789 strings out of 493014
+ 96399 string characters out of 6133351
+ 209738 words of memory out of 5000000
+ 10201 multiletter control sequences out of 15000+600000
+ 31968 words of font info for 76 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  36i,14n,37p,1432b,400s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/local/texlive/201
@@ -588,13 +709,13 @@ pe1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1
 /public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1/
 public/amsfonts/cm/cmsy6.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1/pu
 blic/amsfonts/cm/cmsy8.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1/urw/
-courier/ucrr8a.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1/urw/helvetic
-/uhvb8a.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1/urw/times/utmb8a.pf
-b></usr/local/texlive/2016/texmf-dist/fonts/type1/urw/times/utmr8a.pfb>
-Output written on final_paper.pdf (6 pages, 181044 bytes).
+courier/ucrr8a.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1/urw/times/ut
+mb8a.pfb></usr/local/texlive/2016/texmf-dist/fonts/type1/urw/times/utmr8a.pfb><
+/usr/local/texlive/2016/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on final_paper.pdf (9 pages, 362643 bytes).
 PDF statistics:
- 117 PDF objects out of 1000 (max. 8388607)
- 94 compressed objects within 1 object stream
- 32 named destinations out of 1000 (max. 500000)
- 6 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 146 PDF objects out of 1000 (max. 8388607)
+ 117 compressed objects within 2 object streams
+ 39 named destinations out of 1000 (max. 500000)
+ 16 words of extra memory for PDF output out of 10000 (max. 10000000)
 
