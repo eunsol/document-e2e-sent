@@ -16,9 +16,12 @@
 \gdef\HyperFirstAtBeginDocument#1{#1}
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{DBLP:journals/corr/MohammadKZ13,DBLP:journals/corr/abs-1804-00482,DBLP:journals/corr/abs-1803-08910}
+\citation{Fang2015}
+\citation{DBLP:journals/corr/cs-CL-0409058}
 \newlabel{fig:intro}{{1}{1}{Introduction}{section.1}{}}
+\citation{Kim:2006}
 \citation{Lee:17}
-\citation{Choi:16}
 \citation{Choi:16}
 \citation{Mou:16}
 \citation{Choi:16}
@@ -31,8 +34,8 @@
 \citation{Lee:17}
 \citation{Lee:17}
 \citation{Verga:18}
-\newlabel{fig:intro}{{3.1}{4}{Attentive BiLSTM}{subsection.3.1}{}}
-\newlabel{fig:intro}{{3.2}{4}{Pairwise Attentive biLSTM}{subsection.3.2}{}}
+\newlabel{fig:model1}{{3.1}{4}{Attentive BiLSTM (``ABL")}{subsection.3.1}{}}
+\newlabel{fig:model2}{{3.2}{4}{Pairwise Attentive BiLSTM (``PABL")}{subsection.3.2}{}}
 \citation{Verga:18}
 \citation{Choi:16}
 \citation{Choi:16}
@@ -45,11 +48,19 @@
 \citation{Choi:16}
 \citation{Socher:13}
 \citation{Socher:13}
+\citation{Kim:2006}
 \citation{Choi:16}
 \citation{Choi:16}
-\newlabel{tab:results-dev}{{2}{6}{Results on dev-eval, test-KBP, and test-MPQA. For each sentiment class, shows precision, recall, and f1 scores obtained by each model. \textbf {Bold} indicates the best score for each label among all five models, whereas \underline {underline} indicates the best score among only neural models (Sentence, Attentive biLSTM, Pairwise Attentive biLSTM). Note that \shortcite {Choi:16} did not report results for the `None' label}{table.2}{}}
+\newlabel{tab:results-dev}{{2}{6}{Results on dev-eval, test-KBP, and test-MPQA. For each sentiment class, shows precision, recall, and f1 scores obtained by each model. \textbf {Bold} indicates the best score for each label among all five models, whereas \underline {underline} indicates the best score among only neural models (Sentence, Attentive biLSTM, Pairwise Attentive biLSTM). Note that \citet {Choi:16} did not report results for the `None' label}{table.2}{}}
 \newlabel{tab:ablations}{{3}{7}{Ablations. Ablated various features and reported results on dev-eval. Each feature is important in contributing to the final F1 score}{table.3}{}}
 \citation{Choi:16}
+\citation{Irsoy:14}
+\citation{Liu:15}
+\citation{Mitchell:13}
+\citation{Katiyar:16,Yang:13}
+\citation{Yang:12,Mitchell:13}
+\citation{Yang:13}
+\citation{Liu:15,Irsoy:14}
 \citation{Irsoy:14}
 \citation{Liu:15}
 \citation{Katiyar:16}
@@ -57,5 +68,26 @@
 \citation{Verga:18}
 \newlabel{tab:breakdown}{{4}{8}{Model predictions vs. actual classifications of example for both LSTM-based models. \textbf {Bold} is used to signify the most frequent prediction for each label. The most significant source of error for both models is the classification of ``none" examples as ``neg" or ``pos." This is especially apparent for PABL}{table.4}{}}
 \citation{Yang:13}
-\bibdata{emnlp2018}
-\bibstyle{acl_natbib_nourl}
+\bibstyle{./acl_natbib_nourl}
+\bibdata{./emnlp2018}
+\bibcite{Choi:16}{{1}{2016}{{Choi et~al.}}{{Choi, Rashkin, Zettlemoyer, and Choi}}}
+\bibcite{Fang2015}{{2}{2015}{{Fang and Zhan}}{{}}}
+\bibcite{Irsoy:14}{{3}{2014}{{\.Irsoy and Cardie}}{{}}}
+\bibcite{Katiyar:16}{{4}{2016}{{Katiyar and Cardie}}{{}}}
+\bibcite{Kim:2006}{{5}{2006}{{Kim and Hovy}}{{}}}
+\bibcite{DBLP:journals/corr/abs-1803-08910}{{6}{2018}{{K{\"{u}}{\c {c}}{\"{u}}k and Can}}{{}}}
+\bibcite{Lample:16}{{7}{2016}{{Lample et~al.}}{{Lample, Ballesteros, Subramanian, Kawakami, and Dyer}}}
+\bibcite{Lee:17}{{8}{2017}{{Lee et~al.}}{{Lee, He, Lewis, and Zettlemoyer}}}
+\bibcite{Liu:15}{{9}{2015}{{Liu et~al.}}{{Liu, Joty, and Meng}}}
+\bibcite{Manning:14}{{10}{2014}{{Manning et~al.}}{{Manning, Surdeanu, Bauer, Finkel, Bethard, and McClosky}}}
+\bibcite{Mitchell:13}{{11}{2013}{{Mitchell et~al.}}{{Mitchell, Aguilar, Wilson, and Durme}}}
+\bibcite{DBLP:journals/corr/MohammadKZ13}{{12}{2013}{{Mohammad et~al.}}{{Mohammad, Kiritchenko, and Zhu}}}
+\bibcite{Mou:16}{{13}{2016}{{Mou et~al.}}{{Mou, Meng, Yan, Li, Xu, Zhang, and Jin}}}
+\bibcite{DBLP:journals/corr/cs-CL-0409058}{{14}{2004}{{Pang and Lee}}{{}}}
+\bibcite{Pennington:14}{{15}{2014}{{Pennington et~al.}}{{Pennington, Socher, and Manning}}}
+\bibcite{Socher:13}{{16}{2013}{{Socher et~al.}}{{Socher, Perelygin, Wu, Chuang, Manning, Ng, and Potts}}}
+\bibcite{DBLP:journals/corr/abs-1804-00482}{{17}{2018}{{Tasoulis et~al.}}{{Tasoulis, Vrahatis, Georgakopoulos, and Plagianakos}}}
+\bibcite{Verga:18}{{18}{2018}{{Verga et~al.}}{{Verga, Strubell, and McCallum}}}
+\bibcite{Wilson:05}{{19}{2005}{{Wilson et~al.}}{{Wilson, Wiebe, and Hoffmann}}}
+\bibcite{Yang:12}{{20}{2012}{{Yang and Cardie}}{{}}}
+\bibcite{Yang:13}{{21}{2013}{{Yang and Cardie}}{{}}}

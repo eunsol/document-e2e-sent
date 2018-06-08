@@ -1,0 +1,138 @@
+\begin{thebibliography}{21}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Choi et~al.(2016)Choi, Rashkin, Zettlemoyer, and Choi}]{Choi:16}
+Eunsol Choi, Hannah Rashkin, Luke~S. Zettlemoyer, and Yejin Choi. 2016.
+\newblock Document-level sentiment inference with social, faction, and
+  discourse context.
+\newblock In \emph{ACL}.
+
+\bibitem[{Fang and Zhan(2015)}]{Fang2015}
+Xing Fang and Justin Zhan. 2015.
+\newblock Sentiment analysis using product review data.
+\newblock \emph{Journal of Big Data}, 2(1):5.
+
+\bibitem[{\.Irsoy and Cardie(2014)}]{Irsoy:14}
+Ozan \.Irsoy and Claire Cardie. 2014.
+\newblock Opinion mining with deep recurrent neural networks.
+\newblock \emph{Proceedings of the Conference on Empirical Methods in Natural
+  Language Processing}, pages 720--728.
+
+\bibitem[{Katiyar and Cardie(2016)}]{Katiyar:16}
+Arzoo Katiyar and Claire Cardie. 2016.
+\newblock Investigating lstms for joint extraction of opinion entities and
+  relations.
+\newblock \emph{ACL}.
+
+\bibitem[{Kim and Hovy(2006)}]{Kim:2006}
+Soo-Min Kim and Eduard Hovy. 2006.
+\newblock Identifying and analyzing judgment opinions.
+\newblock \emph{Proceedings of the Main Conference on Human Language Technology
+  Conference of the North American Chapter of the Association of Computational
+  Linguistics}, pages 200--207.
+
+\bibitem[{K{\"{u}}{\c{c}}{\"{u}}k and
+  Can(2018)}]{DBLP:journals/corr/abs-1803-08910}
+Dilek K{\"{u}}{\c{c}}{\"{u}}k and Fazli Can. 2018.
+\newblock Stance detection on tweets: An svm-based approach.
+\newblock \emph{CoRR}, abs/1803.08910.
+
+\bibitem[{Lample et~al.(2016)Lample, Ballesteros, Subramanian, Kawakami, and
+  Dyer}]{Lample:16}
+Guillaume Lample, Miguel Ballesteros, Sandeep~K Subramanian, Kazuya Kawakami,
+  and Chris Dyer. 2016.
+\newblock Neural architectures for named entity recognition.
+\newblock In \emph{HLT-NAACL}.
+
+\bibitem[{Lee et~al.(2017)Lee, He, Lewis, and Zettlemoyer}]{Lee:17}
+Kenton Lee, Luheng He, Mike Lewis, and Luke~S. Zettlemoyer. 2017.
+\newblock End-to-end neural coreference resolution.
+\newblock In \emph{EMNLP}.
+
+\bibitem[{Liu et~al.(2015)Liu, Joty, and Meng}]{Liu:15}
+Pengfei Liu, Shafiq~R. Joty, and Helen~M. Meng. 2015.
+\newblock Fine-grained opinion mining with recurrent neural networks and word
+  embeddings.
+\newblock In \emph{EMNLP}, pages 1433--1443. The Association for Computational
+  Linguistics.
+
+\bibitem[{Manning et~al.(2014)Manning, Surdeanu, Bauer, Finkel, Bethard, and
+  McClosky}]{Manning:14}
+Christopher~D. Manning, Mihai Surdeanu, John Bauer, Jenny Finkel, Steven~J.
+  Bethard, and David McClosky. 2014.
+\newblock The {Stanford} {CoreNLP} natural language processing toolkit.
+\newblock In \emph{Association for Computational Linguistics (ACL) System
+  Demonstrations}, pages 55--60.
+
+\bibitem[{Mitchell et~al.(2013)Mitchell, Aguilar, Wilson, and
+  Durme}]{Mitchell:13}
+Margaret Mitchell, Jacqui Aguilar, Theresa Wilson, and Benjamin~Van Durme.
+  2013.
+\newblock Open domain targeted sentiment.
+\newblock In \emph{EMNLP}.
+
+\bibitem[{Mohammad et~al.(2013)Mohammad, Kiritchenko, and
+  Zhu}]{DBLP:journals/corr/MohammadKZ13}
+Saif~M. Mohammad, Svetlana Kiritchenko, and Xiaodan Zhu. 2013.
+\newblock Nrc-canada: Building the state-of-the-art in sentiment analysis of
+  tweets.
+\newblock \emph{CoRR}, abs/1308.6242.
+
+\bibitem[{Mou et~al.(2016)Mou, Meng, Yan, Li, Xu, Zhang, and Jin}]{Mou:16}
+Lili Mou, Zhao Meng, Rui Yan, Ge~Li, Yan Xu, Lu~Zhang, and Zhi Jin. 2016.
+\newblock How transferable are neural networks in {NLP} applications?
+\newblock \emph{CoRR}, abs/1603.06111.
+
+\bibitem[{Pang and Lee(2004)}]{DBLP:journals/corr/cs-CL-0409058}
+Bo~Pang and Lillian Lee. 2004.
+\newblock A sentimental education: Sentiment analysis using subjectivity
+  summarization based on minimum cuts.
+\newblock \emph{CoRR}, cs.CL/0409058.
+
+\bibitem[{Pennington et~al.(2014)Pennington, Socher, and
+  Manning}]{Pennington:14}
+Jeffrey Pennington, Richard Socher, and Christopher~D. Manning. 2014.
+\newblock Glove: Global vectors for word representation.
+\newblock In \emph{Empirical Methods in Natural Language Processing (EMNLP)},
+  pages 1532--1543.
+
+\bibitem[{Socher et~al.(2013)Socher, Perelygin, Wu, Chuang, Manning, Ng, and
+  Potts}]{Socher:13}
+Richard Socher, Alex Perelygin, Jean Wu, Jason Chuang, Christopher~D. Manning,
+  Andrew~Y. Ng, and Christopher Potts. 2013.
+\newblock Recursive deep models for semantic compositionality over a sentiment
+  treebank.
+\newblock In \emph{Proceedings of the 2013 Conference on {E}mpirical {M}ethods
+  in {N}atural {L}anguage {P}rocessing}, pages 1631--1642, Stroudsburg, PA.
+  Association for Computational Linguistics.
+
+\bibitem[{Tasoulis et~al.(2018)Tasoulis, Vrahatis, Georgakopoulos, and
+  Plagianakos}]{DBLP:journals/corr/abs-1804-00482}
+Sotiris~K. Tasoulis, Aristidis~G. Vrahatis, Spiros~V. Georgakopoulos, and
+  Vassilis~P. Plagianakos. 2018.
+\newblock Real time sentiment change detection of twitter data streams.
+\newblock \emph{CoRR}, abs/1804.00482.
+
+\bibitem[{Verga et~al.(2018)Verga, Strubell, and McCallum}]{Verga:18}
+Patrick Verga, Emma Strubell, and Andrew McCallum. 2018.
+\newblock Simultaneously self-attending to all mentions for full-abstract
+  biological relation extraction.
+\newblock \emph{CoRR}, abs/1802.10569.
+
+\bibitem[{Wilson et~al.(2005)Wilson, Wiebe, and Hoffmann}]{Wilson:05}
+Theresa Wilson, Janyce Wiebe, and Paul Hoffmann. 2005.
+\newblock Recognizing contextual polarity in phrase-level sentiment analysis.
+\newblock In \emph{HLT/EMNLP}.
+
+\bibitem[{Yang and Cardie(2012)}]{Yang:12}
+Bishan Yang and Claire Cardie. 2012.
+\newblock Extracting opinion expressions with semi-markov conditional random
+  fields.
+\newblock In \emph{EMNLP-CoNLL}.
+
+\bibitem[{Yang and Cardie(2013)}]{Yang:13}
+Bishan Yang and Claire Cardie. 2013.
+\newblock Joint inference for fine-grained opinion extraction.
+\newblock In \emph{ACL}.
+
+\end{thebibliography}

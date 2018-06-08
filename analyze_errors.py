@@ -3,10 +3,13 @@ import random
 import numpy as np
 
 wrong_filenames = ["./error_analysis/C/wrong_docs_dev.json", "./error_analysis/C/wrong_docs_dev_baseline.json",
-                   "./error_analysis/C/wrong_docs_dev_adv.json"]
+                   "./error_analysis/C/wrong_docs_dev_adv.json", "./error_analysis/C/wrong_docs_KBP_adv.json",
+                   "./error_analysis/C/wrong_docs_KBP_base.json"]
 right_filenames = ["./error_analysis/C/right_docs_dev.json", "./error_analysis/C/right_docs_dev_baseline.json",
-                   "./error_analysis/C/right_docs_dev_adv.json"]
-docs_file = ["./data/final/acl_dev_eval.json", "./data/final/acl_dev_eval.json", "./data/final/acl_dev_eval.json"]
+                   "./error_analysis/C/right_docs_dev_adv.json", "./error_analysis/C/right_docs_KBP_adv.json",
+                   "./error_analysis/C/right_docs_KBP_base.json"]
+docs_file = ["./data/final/acl_dev_eval.json", "./data/final/acl_dev_eval.json", "./data/final/acl_dev_eval.json",
+             "./data/final/acl_test.json", "./data/final/acl_test.json"]
 '''
 #wrong_filenames = ["./error_analysis/wrong_docs_has_1s.json", "./error_analysis/wrong_docs_has_1s_mpqa.json",
                    "./error_analysis/added_mention_features/wrong_docs.json",
@@ -20,10 +23,10 @@ docs_file = ["./data/new_annot/feature/acl_dev_eval_new.json", "./data/new_annot
              "./data/new_annot/feature/acl_dev_eval_new.json", "./data/new_annot/feature/mpqa_new.json",
              "./data/new_annot/feature/acl_test_new.json"]
 '''
-models_map = {1: "baseline", 2: "adv"}
+models_map = {1: "baseline", 2: "adv", 3: "adv", 4: "baseline"}
 
-file = 1
-model_to_evaluate = "classify" #  models_map[file]
+file = 3
+model_to_evaluate = models_map[file]
 
 def make_key(holder_inds, target_inds):
     key = ""
@@ -575,14 +578,14 @@ def count_num_mentions(filename):
 
 def write_to_file():
     all_data = []
-    with open("./error_analysis/C/acl_dev_eval.json", "r", encoding="latin1") as rf:
+    with open("./error_analysis/C/acl_test.json", "r", encoding="latin1") as rf:  # ./data/final/acl_test.json
         for line in rf:
             annot = json.loads(line)
             pred = doc_to_pairinds_to_preds[annot["docid"]][make_key(annot["holder_index"], annot["target_index"])]
             annot[model_to_evaluate] = pred
             all_data.append(annot)
 
-    with open("./error_analysis/C/acl_dev_eval.json", "w", encoding="latin1") as wf:
+    with open("./error_analysis/C/acl_test.json", "w", encoding="latin1") as wf:
         for annot in all_data:
             json.dump(annot, wf)
             wf.write("\n")

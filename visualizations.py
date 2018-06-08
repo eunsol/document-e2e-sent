@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import json
 
+filename = "acl_dev_eval.json"  # "acl_test.json"
+
 '''
 COLORS = ['blue', 'red', 'green', 'violet', 'orange',
           'yellow', 'black', 'brown', 'cyan', 'pink',
@@ -22,6 +24,7 @@ COLORS = [(0, 0, 1), (1, 0, 0), (0, 0.5, 0), (1, 0.5, 0), (1, 1, 0),
 TEXT_COLORS = ['black' for i in range(len(COLORS))]
 TEXT_COLORS[6] = 'white'
 '''
+
 
 # either holder_inds and target_inds given
 # or entity_inds given
@@ -66,7 +69,7 @@ doc_to_ht_pairs_sentiment_base = {}
 doc_to_ht_pairs_positive_base = {}
 doc_to_ht_pairs_sentiment_adv = {}
 doc_to_ht_pairs_positive_adv = {}
-with open("./error_analysis/C/acl_dev_eval.json", "r", encoding="latin1") as rf:
+with open("./error_analysis/C/" + filename, "r", encoding="latin1") as rf:
     for line in rf:
         annot = json.loads(line)
         if annot["docid"] not in doc_to_ht_to_annot:
@@ -163,7 +166,8 @@ for i in range(len(docs_chosen)):
         wf.write(text)
 '''
 
-def draw_figure(doc_chosen, all_edges, positive_edges, nodes, fig):
+
+def draw_figure(doc_chosen, all_edges, positive_edges, nodes, fig, node_pos_use):
     edges_list = all_edges[doc_chosen]
     ''' [("US", "Israel"),
     ("AIPAC", "Israel"),
@@ -199,6 +203,9 @@ def draw_figure(doc_chosen, all_edges, positive_edges, nodes, fig):
 
     G.add_edges_from(edges_list)
 
+    if node_pos_use is None:
+        node_pos_use = graphviz_layout(G)
+
     # values = [val_map.get(node, 0.25) for node in G.nodes()]
     # print(values)
 
@@ -207,11 +214,11 @@ def draw_figure(doc_chosen, all_edges, positive_edges, nodes, fig):
 
     # Need to create a layout when doing
     # separate calls to draw nodes and edges
-    nx.draw_networkx_nodes(G, nodes_pos, nodelist=nodes, node_color=COLORS[:len(nodes)],
+    nx.draw_networkx_nodes(G, node_pos_use, nodelist=nodes, node_color=COLORS[:len(nodes)],
                            cmap=fig.get_cmap('jet'), node_size=500)
-    nx.draw_networkx_labels(G, nodes_pos)
-    nx.draw_networkx_edges(G, nodes_pos, arrowsize=25, edgelist=green_edges, edge_color='g', arrows=True)
-    nx.draw_networkx_edges(G, nodes_pos, arrowsize=25, edgelist=red_edges, edge_color='r', arrows=True)
+    nx.draw_networkx_labels(G, node_pos_use)
+    nx.draw_networkx_edges(G, node_pos_use, arrowsize=25, edgelist=green_edges, edge_color='g', arrows=True)
+    nx.draw_networkx_edges(G, node_pos_use, arrowsize=25, edgelist=red_edges, edge_color='r', arrows=True)
 
     # Graph settings
     fig.tight_layout()
@@ -220,31 +227,36 @@ def draw_figure(doc_chosen, all_edges, positive_edges, nodes, fig):
     fig.ylim((fig.ylim()[0] - 5, fig.ylim()[1] + 5))
     fig.axis('off')
 
+    G.remove_edges_from(edges_list)
+
+    return node_pos_use
+
 
 for i in range(len(docs_chosen)):
     doc = docs_chosen[i]
+    # '''
+    if not doc == "XIN_ENG_20101013.0315":  # "XIN_ENG_20091117.0350":  # "AFP_ENG_20101205.0170":
+        continue
+    # '''
     print(doc)
-
     # Adding nodes (note are the same for same document)
     nodes_list = doc_to_entities[doc]  # ['Israel', 'State', 'Clinton', 'US', "AIPAC", "Obama"]
     G = nx.DiGraph()
     G.add_nodes_from(nodes_list)
-    nodes_pos = graphviz_layout(G)
 
     f = plt.figure(figsize=(10, 10))
-
-    f.add_subplot(221)
-    draw_figure(doc, doc_to_ht_pairs_sentiment, doc_to_ht_pairs_positive, nodes_list, plt)
-    plt.title("Actual Label")
-    f.add_subplot(222)
-    draw_figure(doc, doc_to_ht_pairs_sentiment_sent, doc_to_ht_pairs_positive_sent, nodes_list, plt)
-    plt.title("Sentence Baseline")
     f.add_subplot(223)
-    draw_figure(doc, doc_to_ht_pairs_sentiment_base, doc_to_ht_pairs_positive_base, nodes_list, plt)
-    plt.title("biLSTM")
+    node_pos = draw_figure(doc, doc_to_ht_pairs_sentiment_base, doc_to_ht_pairs_positive_base, nodes_list, plt, None)
+    plt.title("Attentive biLSTM")
     f.add_subplot(224)
-    draw_figure(doc, doc_to_ht_pairs_sentiment_adv, doc_to_ht_pairs_positive_adv, nodes_list, plt)
-    plt.title("Advanced Model")
+    draw_figure(doc, doc_to_ht_pairs_sentiment_adv, doc_to_ht_pairs_positive_adv, nodes_list, plt, node_pos)
+    plt.title("Pairwise Attentive biLSTM")
+    f.add_subplot(222)
+    draw_figure(doc, doc_to_ht_pairs_sentiment_sent, doc_to_ht_pairs_positive_sent, nodes_list, plt, node_pos)
+    plt.title("Sentence Baseline")
+    f.add_subplot(221)
+    node_pos = draw_figure(doc, doc_to_ht_pairs_sentiment, doc_to_ht_pairs_positive, nodes_list, plt, node_pos)
+    plt.title("Actual Label")
 
     plt.savefig("./demo/" + doc + ".png", bbox_inches='tight')  # save figure
     plt.close(f)  # close it
